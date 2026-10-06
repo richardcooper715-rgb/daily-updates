@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Premier League 2026/27: results, fixtures, TV and table</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F4F4F9; --surface:#FFFFFF; --ink:#15142B; --muted:#5E5C78;
+  --line:#DEDDEA; --line-strong:#C6C4D8;
+  --night:#1B1840; --on-night:#F1F0FA; --card:#F5D33B; --card-ink:#2A2200;
+  --bar-fav:#3B3A9E; --bar-dog:#C9C8E0; --bar-draw:#9A98B5; --tint:#EDECF7; --dot-ring:rgba(0,0,0,.18);
+  --sky:#1E5FBF; --tnt:#B8175A; --pos:#1E7A4B; --neg:#B23B32;
+  --display:"Archivo Narrow","Arial Narrow","Helvetica Neue",Arial,sans-serif;
+  --body:"DM Sans",system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --radius:12px;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E0D22; --surface:#17163A; --ink:#EDEDF8; --muted:#9C9AB8;
+    --line:#2A2856; --line-strong:#3B3970;
+    --night:#12112E; --bar-fav:#7C7AE6; --bar-dog:#34325F; --bar-draw:#54527F; --tint:#201F4A; --dot-ring:rgba(255,255,255,.28);
+    --pos:#5FCB92; --neg:#F08379;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E0D22; --surface:#17163A; --ink:#EDEDF8; --muted:#9C9AB8;
+  --line:#2A2856; --line-strong:#3B3970;
+  --night:#12112E; --bar-fav:#7C7AE6; --bar-dog:#34325F; --bar-draw:#54527F; --tint:#201F4A; --dot-ring:rgba(255,255,255,.28);
+  --pos:#5FCB92; --neg:#F08379;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);background:var(--bg)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45;-webkit-text-size-adjust:100%}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--card);outline-offset:2px}
+
+/* Masthead: night sky with floodlit centre-circle markings */
+.masthead{
+  margin-top:calc(-1 * env(safe-area-inset-top,0px));
+  padding:calc(26px + env(safe-area-inset-top,0px)) 16px 22px;
+  color:var(--on-night);
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 240' preserveAspectRatio='xMaxYMid slice'%3E%3Cg fill='none' stroke='white' stroke-opacity='.14' stroke-width='2'%3E%3Ccircle cx='230' cy='120' r='84'/%3E%3Cline x1='230' y1='-10' x2='230' y2='250'/%3E%3C/g%3E%3Ccircle cx='230' cy='120' r='5' fill='white' fill-opacity='.2'/%3E%3C/svg%3E") right center / auto 100% no-repeat,
+    var(--night);
+}
+.mast-inner{max-width:640px;margin:0 auto}
+.season{margin:0;font-size:15px;opacity:.82}
+h1{margin:2px 0 6px;font-family:var(--display);font-weight:700;font-size:clamp(56px,17vw,84px);line-height:.92;letter-spacing:-.01em}
+.asof{margin:0 0 14px;font-size:14px;opacity:.82}
+.counts{list-style:none;margin:0;padding:0;display:flex;gap:22px;flex-wrap:wrap}
+.counts li{font-size:14px;opacity:.92}
+.counts b{font-family:var(--display);font-size:30px;font-weight:700;line-height:1;margin-right:5px;vertical-align:-3px}
+.counts .hl b{color:var(--card)}
+
+main{max-width:640px;margin:0 auto;padding:18px 16px calc(96px + env(safe-area-inset-bottom,0px))}
+h2{margin:0;font-family:var(--display);font-weight:700;font-size:30px;line-height:1.05}
+h3{margin:0 0 6px;font-family:var(--display);font-weight:600;font-size:22px}
+.intro{margin:0 0 12px;color:var(--muted);font-size:14px}
+.banner{margin:0 0 16px;padding:12px 14px;border-radius:var(--radius);background:var(--card);color:var(--card-ink);font-size:14px;font-weight:500}
+.section{margin:26px 0 0}
+.section.first{margin-top:14px}
+.sectionhead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 4px}
+.sectionsub{margin:0 0 12px;color:var(--muted);font-size:14px}
+
+/* filter switch */
+.filter{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line-strong);background:var(--surface);border-radius:999px;padding:7px 14px 7px 10px;font-size:14px;font-weight:500;cursor:pointer;min-height:40px}
+.filter .sw{width:34px;height:20px;border-radius:999px;background:var(--bar-dog);position:relative;flex:none}
+.filter .sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.15)}
+.filter[aria-pressed="true"] .sw{background:var(--bar-fav)}
+.filter[aria-pressed="true"] .sw::after{left:16px}
+
+/* cards */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;margin:0 0 10px}
+.chead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 4px;font-size:13px;color:var(--muted);min-height:24px}
+.chip{display:inline-block;font-size:12px;font-weight:600;line-height:1;padding:5px 9px;border-radius:6px;white-space:nowrap}
+.chip.sky{background:var(--sky);color:#fff}
+.chip.tnt{background:var(--tnt);color:#fff}
+.chip.none{border:1px solid var(--line-strong);color:var(--muted);font-weight:500}
+.row{display:grid;grid-template-columns:10px minmax(0,1fr) auto;align-items:center;gap:10px;padding:6px 0}
+.dot{width:10px;height:10px;border-radius:50%;box-shadow:inset 0 0 0 1px var(--dot-ring);display:inline-block;flex:none}
+.tname{font-size:17px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
+.score{font-family:var(--display);font-weight:700;font-size:36px;line-height:1;min-width:34px;text-align:right;color:var(--muted)}
+.row.win .tname,.row.win .score,.row.draw .tname,.row.draw .score{color:var(--ink)}
+.row.win .tname{font-weight:600}
+.pos-tag{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.blurb{margin:6px 0 0;padding-top:8px;border-top:1px solid var(--line);font-size:14px;color:var(--muted)}
+.tvline{margin:6px 0 0;font-size:13px;color:var(--muted)}
+.tvline b{color:var(--ink);font-weight:600}
+
+/* stats + info boxes */
+.stats{display:grid;grid-template-columns:8rem minmax(0,1fr);gap:6px 12px;margin:0 0 14px;padding:12px 14px;border:1px dashed var(--line-strong);border-radius:var(--radius);font-size:14px}
+.stats dt{color:var(--muted)}
+.stats dd{margin:0}
+.info{margin:0 0 6px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--radius);background:var(--tint);font-size:14px}
+.info h3{font-size:19px;margin:0 0 6px}
+.info ul{margin:0;padding-left:18px}
+.info li{margin:3px 0}
+
+/* fixtures */
+.kick{font-family:var(--display);font-weight:700;font-size:28px;line-height:1;color:var(--ink)}
+.uhead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 4px}
+.wp{margin:10px 0 0}
+.bar{display:flex;gap:3px;height:8px}
+.bar span{display:block;border-radius:4px;min-width:6px}
+.bar .fav{background:var(--bar-fav)}
+.bar .dog{background:var(--bar-dog)}
+.bar .draw{background:var(--bar-draw)}
+.wplabels{display:flex;justify-content:space-between;margin-top:4px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.wplabels b{color:var(--ink);font-weight:600}
+.pick{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:10px;align-items:center;padding:11px 14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);margin:0 0 8px}
+.pick .kick{font-size:24px}
+.pick .pt{font-size:15px;font-weight:500;min-width:0}
+.pick .pt span.vs{color:var(--muted);font-weight:400;margin:0 5px}
+.pick .pt .dot{margin-right:6px;vertical-align:0}
+.pick .pnote{grid-column:1 / -1;font-size:13px;color:var(--muted);margin-top:-4px}
+
+/* table */
+.thead,.trow{display:grid;grid-template-columns:24px minmax(0,1fr) 30px 30px 30px 30px 40px;align-items:center;gap:4px}
+.thead{padding:0 12px 4px;font-size:12px;color:var(--muted)}
+.thead span:not(:nth-child(2)){text-align:right}
+.thead span:first-child{text-align:left}
+.trow{width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0 0 6px;cursor:pointer;min-height:48px}
+.trow[aria-expanded="true"]{border-color:var(--line-strong);background:var(--tint)}
+.tm{display:flex;align-items:center;gap:9px;min-width:0}
+.tm .nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.num{text-align:right;font-variant-numeric:tabular-nums;font-size:15px}
+.num.pts{font-weight:700}
+.rk{font-family:var(--display);font-weight:700;font-size:19px;color:var(--muted)}
+.panel{margin:-2px 0 8px;padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-size:14px}
+.panel ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.panel li{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.res{flex:none;width:46px;font-weight:600;font-size:13px;border-radius:6px;padding:1px 0;text-align:center}
+.res.w{background:var(--bar-fav);color:#fff}
+.res.d{background:var(--bar-draw);color:#fff}
+.res.l{background:var(--bar-dog);color:var(--ink)}
+.res.next{border:1px solid var(--line-strong)}
+.mut{color:var(--muted)}
+.cut{display:flex;align-items:center;gap:10px;margin:8px 0 10px;font-size:12px;color:var(--muted)}
+.cut::before,.cut::after{content:"";flex:1;border-top:2px dashed var(--line-strong)}
+.note{margin:14px 0 0;font-size:13px;color:var(--muted)}
+.foot{margin:30px 0 0;padding-top:14px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+.empty{padding:18px 14px;border:1px dashed var(--line-strong);border-radius:var(--radius);color:var(--muted);font-size:14px}
+
+/* bottom tabs */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabs-inner{max-width:640px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr)}
+.tab{position:relative;border:0;background:transparent;padding:14px 8px 13px;font-weight:600;font-size:15px;color:var(--muted);cursor:pointer;min-height:52px}
+.tab[aria-selected="true"]{color:var(--ink)}
+.tab[aria-selected="true"]::before{content:"";position:absolute;left:18%;right:18%;top:-1px;height:4px;border-radius:0 0 4px 4px;background:var(--card)}
+[hidden]{display:none !important}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="mast-inner">
+    <p class="season">Premier League 2026/27</p>
+    <h1>Matchweek 5</h1>
+    <p class="asof" id="asof"></p>
+    <ul class="counts" id="counts"></ul>
+  </div>
+</header>
+
+<main>
+  <div id="banner"></div>
+  <section id="panel-results" role="tabpanel" aria-labelledby="tab-results"></section>
+  <section id="panel-fixtures" role="tabpanel" aria-labelledby="tab-fixtures" hidden></section>
+  <section id="panel-table" role="tabpanel" aria-labelledby="tab-table" hidden>
+    <div id="tableBody"></div>
+    <p class="note">Tap a team for its latest result, next game and next televised game. Goal difference is not in the data feed, so teams level on points are shown in the order the league table gives them. The bottom three are relegated.</p>
+  </section>
+  <p class="foot" id="foot"></p>
+</main>
+
+<nav class="tabs" aria-label="Sections">
+  <div class="tabs-inner" role="tablist">
+    <button class="tab" role="tab" id="tab-results" aria-controls="panel-results" aria-selected="true" type="button">Results</button>
+    <button class="tab" role="tab" id="tab-fixtures" aria-controls="panel-fixtures" aria-selected="false" type="button">Fixtures</button>
+    <button class="tab" role="tab" id="tab-table" aria-controls="panel-table" aria-selected="false" type="button">Table</button>
+  </div>
+</nav>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- Snapshot data (fetched Mon 21 Sep 2026, 15:45 BST) ---------- */
+var SNAP = new Date("2026-09-21T14:45:38Z");
+
+/* [name, short name, colour] */
+var TEAMS = {
+  ARS:["Arsenal","Arsenal","#EF0107"], AVL:["Aston Villa","Aston Villa","#8A1538"], BOU:["AFC Bournemouth","Bournemouth","#DA291C"],
+  BRE:["Brentford","Brentford","#D6001C"], BRI:["Brighton & Hove Albion","Brighton","#0057B8"], CFC:["Chelsea","Chelsea","#034694"],
+  COV:["Coventry City","Coventry","#59CBE8"], CRY:["Crystal Palace","Crystal Palace","#1B458F"], EVE:["Everton","Everton","#003399"],
+  FUL:["Fulham","Fulham","#3A3A3A"], HUL:["Hull City","Hull City","#F5A12D"], IPS:["Ipswich Town","Ipswich","#0044AA"],
+  LEE:["Leeds United","Leeds","#FFCD00"], LFC:["Liverpool","Liverpool","#C8102E"], MCI:["Manchester City","Man City","#6CABDD"],
+  MUN:["Manchester United","Man Utd","#DA291C"], NEW:["Newcastle United","Newcastle","#4A4A4A"], NFO:["Nottingham Forest","Nott'm Forest","#DD0000"],
+  SUN:["Sunderland","Sunderland","#EB172B"], TOT:["Tottenham Hotspur","Spurs","#132257"]
+};
+
+/* Results: [kick-off UTC, home, away, home goals, away goals, TV (SKY/TNT/NONE), channel detail] */
+var RESULTS_RAW = [
+  ["2026-09-18T19:00:00Z","BRE","CFC",3,0,"SKY","Sky Sports Main Event and Premier League"],
+  ["2026-09-19T11:30:00Z","TOT","AVL",2,3,"TNT","TNT Sports 1"],
+  ["2026-09-19T14:00:00Z","BRI","ARS",3,0,"NONE",""],
+  ["2026-09-19T14:00:00Z","EVE","IPS",1,0,"NONE",""],
+  ["2026-09-19T14:00:00Z","NEW","HUL",2,1,"NONE",""],
+  ["2026-09-19T16:30:00Z","NFO","COV",0,1,"SKY","Sky Sports Main Event and Premier League"],
+  ["2026-09-20T13:00:00Z","BOU","LFC",0,1,"SKY","Sky Sports Main Event"],
+  ["2026-09-20T13:00:00Z","LEE","CRY",0,0,"SKY","Sky Sports Tennis channel"],
+  ["2026-09-20T13:00:00Z","MCI","SUN",5,3,"SKY","Sky Sports Premier League"],
+  ["2026-09-20T15:30:00Z","FUL","MUN",1,1,"SKY","Sky Sports Main Event and Premier League"]
+];
+
+/* Next round from the feed: [kick-off UTC, home, away, home %, draw %, away %, TV, channel detail] */
+var FIX_RAW = [
+  ["2026-10-10T11:30:00Z","ARS","LEE",70.8,18.0,11.2,"TNT",""],
+  ["2026-10-10T14:00:00Z","AVL","BRE",35.5,27.0,37.5,"NONE",""],
+  ["2026-10-10T14:00:00Z","CFC","BOU",53.5,22.7,23.8,"NONE",""],
+  ["2026-10-10T14:00:00Z","IPS","FUL",35.5,26.9,37.6,"NONE",""],
+  ["2026-10-10T14:00:00Z","SUN","BRI",33.6,27.6,38.8,"NONE",""],
+  ["2026-10-10T16:30:00Z","MUN","TOT",55.7,22.6,21.7,"SKY",""],
+  ["2026-10-11T13:00:00Z","CRY","NFO",35.4,28.8,35.8,"SKY",""],
+  ["2026-10-11T13:00:00Z","HUL","EVE",26.6,28.0,45.4,"SKY",""],
+  ["2026-10-11T15:30:00Z","LFC","MCI",34.0,25.7,40.3,"SKY",""],
+  ["2026-10-12T19:00:00Z","COV","NEW",28.7,26.3,45.0,"SKY",""]
+];
+
+/* Later TV picks announced by the league: [kick-off UTC, home, away, TV, channel detail, note] */
+var LATER_RAW = [
+  ["2026-10-17T11:30:00Z","EVE","CFC","TNT","TNT Sports 1",""],
+  ["2026-10-17T16:30:00Z","NEW","AVL","SKY","Sky Sports Main Event and Premier League",""],
+  ["2026-10-18T13:00:00Z","BOU","SUN","SKY","",""],
+  ["2026-10-18T13:00:00Z","BRI","CRY","SKY","",""],
+  ["2026-10-18T13:00:00Z","LEE","MUN","SKY","",""],
+  ["2026-10-18T15:30:00Z","NFO","ARS","SKY","Sky Sports Main Event and Premier League",""],
+  ["2026-10-19T19:00:00Z","TOT","COV","SKY","Sky Sports Main Event and Premier League",""],
+  ["2026-10-23T19:00:00Z","IPS","NFO","SKY","",""],
+  ["2026-10-24T11:30:00Z","AVL","MCI","TNT","","Could move to 20:00 if Aston Villa are drawn away in the Champions League the Wednesday before."],
+  ["2026-10-31T12:30:00Z","CFC","MUN","TNT","",""],
+  ["2026-10-31T17:30:00Z","TOT","CRY","SKY","",""],
+  ["2026-11-01T14:00:00Z","AVL","FUL","SKY","",""],
+  ["2026-11-01T16:30:00Z","LFC","ARS","SKY","",""],
+  ["2026-11-02T20:00:00Z","NEW","EVE","SKY","",""]
+];
+
+/* League table: [position, team, W, D, L, points] */
+var TABLE_RAW = [
+  [1,"MCI",5,0,0,15],[2,"ARS",4,0,1,12],[3,"BRI",3,1,1,10],[4,"BRE",2,3,0,9],[5,"LEE",2,3,0,9],
+  [6,"LFC",2,3,0,9],[7,"EVE",2,3,0,9],[8,"HUL",2,2,1,8],[9,"NEW",2,2,1,8],[10,"CFC",2,1,2,7],
+  [11,"IPS",2,0,3,6],[12,"MUN",1,2,2,5],[13,"NFO",1,2,2,5],[14,"SUN",1,1,3,4],[15,"CRY",1,1,3,4],
+  [16,"AVL",1,1,3,4],[17,"BOU",0,3,2,3],[18,"COV",1,0,4,3],[19,"FUL",0,2,3,2],[20,"TOT",0,2,3,2]
+];
+
+/* ---------- Helpers ---------- */
+var DAYS=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+var MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function pad(n){return String(n).padStart(2,"0");}
+function dayStr(d){return DAYS[d.getDay()]+" "+d.getDate()+" "+MONTHS[d.getMonth()];}
+function timeStr(d){return pad(d.getHours())+":"+pad(d.getMinutes());}
+function nm(a){return TEAMS[a][1];}
+function dot(a){return '<span class="dot" style="background:'+TEAMS[a][2]+'"></span>';}
+function $(s){return document.querySelector(s);}
+function plural(n,w){return n+" "+w+(n===1?"":"s");}
+function ord(n){var s=["th","st","nd","rd"],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
+
+var RESULTS = RESULTS_RAW.map(function(r){return {t:new Date(r[0]),h:r[1],a:r[2],hg:r[3],ag:r[4],tv:r[5],ch:r[6]};});
+var FIX     = FIX_RAW.map(function(r){return {t:new Date(r[0]),h:r[1],a:r[2],ph:r[3],pd:r[4],pa:r[5],tv:r[6],ch:r[7]};});
+var LATER   = LATER_RAW.map(function(r){return {t:new Date(r[0]),h:r[1],a:r[2],tv:r[3],ch:r[4],note:r[5]};});
+var TABLE   = TABLE_RAW.map(function(r){return {pos:r[0],a:r[1],w:r[2],d:r[3],l:r[4],pts:r[5],p:r[2]+r[3]+r[4]};});
+var POS = {}; TABLE.forEach(function(t){POS[t.a]=t;});
+
+var tvOnly=false;
+
+function chip(tv){
+  if(tv==="SKY") return '<span class="chip sky">Sky Sports</span>';
+  if(tv==="TNT") return '<span class="chip tnt">TNT Sports</span>';
+  return '<span class="chip none">Not on UK TV</span>';
+}
+function tvLine(tv,ch){
+  if(tv==="SKY") return '<p class="tvline"><b>'+(ch||"Sky Sports (channel to be confirmed)")+'.</b> Stream on Sky Go or NOW.</p>';
+  if(tv==="TNT") return '<p class="tvline"><b>'+(ch||"TNT Sports (channel to be confirmed)")+'.</b> Stream on HBO Max.</p>';
+  return '<p class="tvline">Not shown live in the UK: Saturday 3pm kick-offs are blacked out.</p>';
+}
+function pct3(a,b,c){
+  var v=[a,b,c], f=v.map(Math.floor), rem=100-(f[0]+f[1]+f[2]);
+  var idx=[0,1,2].sort(function(i,j){return (v[j]-f[j])-(v[i]-f[i]);});
+  for(var k=0;k<rem;k++) f[idx[k]]++;
+  return f;
+}
+
+/* ---------- Summaries generated from the scores ---------- */
+function blurb(g){
+  var t=g.hg+g.ag, m=Math.abs(g.hg-g.ag), s;
+  if(g.hg===g.ag){
+    s = t===0 ? "Goalless: neither side could find a way through." : "Honours even at "+g.hg+"\u2013"+g.ag+".";
+  } else {
+    var hw=g.hg>g.ag, W=hw?g.h:g.a, L=hw?g.a:g.h, ws=Math.max(g.hg,g.ag), ls=Math.min(g.hg,g.ag);
+    if(m===1) s=nm(W)+" edged "+nm(L)+" "+ws+"\u2013"+ls+".";
+    else if(m===2) s=nm(W)+" won "+ws+"\u2013"+ls+" against "+nm(L)+".";
+    else s=nm(W)+" beat "+nm(L)+" comfortably, "+ws+"\u2013"+ls+".";
+    if(ls===0) s+=" A clean sheet for "+nm(W)+".";
+    if(!hw) s+=" An away win.";
+  }
+  if(t>=6) s+=" "+t+" goals made it a thriller.";
+  return s;
+}
+function roundStats(gs){
+  var goals=0,hw=0,dr=0,aw=0,cs=0,maxT=-1,maxM=-1;
+  gs.forEach(function(g){
+    var t=g.hg+g.ag, m=Math.abs(g.hg-g.ag);
+    goals+=t; if(g.hg>g.ag)hw++; else if(g.hg<g.ag)aw++; else dr++;
+    if(g.hg===0)cs++; if(g.ag===0)cs++;
+    if(t>maxT)maxT=t; if(m>maxM)maxM=m;
+  });
+  function sc(g){return nm(g.h)+" "+g.hg+"\u2013"+g.ag+" "+nm(g.a);}
+  return {goals:goals, avg:(goals/gs.length).toFixed(1), hw:hw, dr:dr, aw:aw, cs:cs,
+    top:gs.filter(function(g){return g.hg+g.ag===maxT;}).map(sc).join(" and ")+" ("+maxT+" goals)",
+    big:gs.filter(function(g){return Math.abs(g.hg-g.ag)===maxM;}).map(sc).join(" and ")+" (by "+maxM+")"};
+}
+function preview(g){
+  var H=POS[g.h], A=POS[g.a];
+  var s=nm(g.h)+" ("+ord(H.pos)+", "+H.pts+" pts) host "+nm(g.a)+" ("+ord(A.pos)+", "+A.pts+" pts).";
+  if(Math.abs(g.ph-g.pa)<6) s+=" Too close to call on the odds.";
+  else { var fav=g.ph>g.pa?g.h:g.a; s+=" "+nm(fav)+" are favourites ("+Math.round(Math.max(g.ph,g.pa))+"%)."; }
+  return s;
+}
+
+/* ---------- Results tab ---------- */
+function resultCard(g){
+  var hw=g.hg>g.ag, aw=g.ag>g.hg, dr=g.hg===g.ag;
+  function row(a,sc,win){return '<div class="row'+(win?" win":"")+(dr?" draw":"")+'">'+dot(a)+'<span class="tname">'+nm(a)+'</span><span class="score">'+sc+'</span></div>';}
+  return '<article class="card"><div class="chead"><span>'+timeStr(g.t)+'</span>'+chip(g.tv)+'</div>'+
+    row(g.h,g.hg,hw)+row(g.a,g.ag,aw)+'<p class="blurb">'+blurb(g)+'</p>'+tvLine(g.tv,g.ch)+'</article>';
+}
+function filterToggle(){
+  return '<button type="button" class="filter" data-tvfilter aria-pressed="'+tvOnly+'"><span class="sw"></span>Live on TV only</button>';
+}
+function renderResults(){
+  var all=RESULTS.slice().sort(function(a,b){return a.t-b.t;});
+  var shown=tvOnly?all.filter(function(g){return g.tv!=="NONE";}):all;
+  var st=roundStats(all);
+  var html='<div class="section first"><div class="sectionhead"><h2>Round in numbers</h2></div>'+
+    '<dl class="stats"><dt>Goals</dt><dd>'+st.goals+' in '+all.length+' games ('+st.avg+' per game)</dd>'+
+    '<dt>Home advantage</dt><dd>'+plural(st.hw,"home win")+', '+plural(st.dr,"draw")+', '+plural(st.aw,"away win")+'</dd>'+
+    '<dt>Highest scoring</dt><dd>'+st.top+'</dd><dt>Biggest win</dt><dd>'+st.big+'</dd><dt>Clean sheets</dt><dd>'+st.cs+'</dd></dl>'+
+    '<p class="intro">Home team is listed first. Summaries are generated from the final scores. BBC Sport has highlights of the games.</p>'+filterToggle()+'</div>';
+  var days=[], map={};
+  shown.forEach(function(g){var k=dayStr(g.t);if(!map[k]){map[k]=[];days.push(k);}map[k].push(g);});
+  days.reverse().forEach(function(k){
+    html+='<div class="section"><div class="sectionhead"><h2>'+k+'</h2></div><p class="sectionsub">'+plural(map[k].length,"match")+(tvOnly?' on live TV':'')+'</p>'+map[k].map(resultCard).join("")+'</div>';
+  });
+  $("#panel-results").innerHTML=html;
+}
+
+/* ---------- Fixtures tab ---------- */
+function fixtureCard(g){
+  var H=POS[g.h], A=POS[g.a], p=pct3(g.ph,g.pd,g.pa);
+  function r(a,P){return '<div class="row">'+dot(a)+'<span class="tname" style="color:var(--ink)">'+nm(a)+'</span><span class="pos-tag">'+ord(P.pos)+', '+P.pts+' pts</span></div>';}
+  var homeFav=g.ph>=g.pa;
+  var wp='<div class="wp" role="img" aria-label="Win probability: '+nm(g.h)+' '+p[0]+' percent, draw '+p[1]+' percent, '+nm(g.a)+' '+p[2]+' percent">'+
+    '<div class="bar"><span class="'+(homeFav?"fav":"dog")+'" style="width:'+g.ph+'%"></span><span class="draw" style="width:'+g.pd+'%"></span><span class="'+(homeFav?"dog":"fav")+'" style="width:'+g.pa+'%"></span></div>'+
+    '<div class="wplabels"><span>'+(homeFav?'<b>'+g.h+' '+p[0]+'%</b>':g.h+' '+p[0]+'%')+'</span><span>Draw '+p[1]+'%</span><span>'+(homeFav?g.a+' '+p[2]+'%':'<b>'+g.a+' '+p[2]+'%</b>')+'</span></div></div>';
+  return '<article class="card"><div class="uhead"><span class="kick">'+timeStr(g.t)+'</span>'+chip(g.tv)+'</div>'+
+    r(g.h,H)+r(g.a,A)+wp+'<p class="blurb">'+preview(g)+'</p>'+tvLine(g.tv,g.ch)+'</article>';
+}
+function pickRow(g){
+  return '<div class="pick"><span class="kick">'+timeStr(g.t)+'</span><span class="pt">'+dot(g.h)+nm(g.h)+'<span class="vs">v</span>'+dot(g.a)+nm(g.a)+'</span>'+chip(g.tv)+
+    (g.ch||g.note?'<span class="pnote">'+(g.ch?g.ch+'. ':'')+(g.note||'')+'</span>':'')+'</div>';
+}
+function groupByDay(list){
+  var days=[], map={};
+  list.forEach(function(g){var k=dayStr(g.t);if(!map[k]){map[k]=[];days.push(k);}map[k].push(g);});
+  return {days:days,map:map};
+}
+function renderFixtures(){
+  var fx=FIX.slice().sort(function(a,b){return a.t-b.t;});
+  var lt=LATER.slice().sort(function(a,b){return a.t-b.t;});
+  if(tvOnly){fx=fx.filter(function(g){return g.tv!=="NONE";});}
+  var html='<div class="section first"><div class="info"><h3>How to watch</h3><ul>'+
+    '<li>Live UK coverage is split between <b>Sky Sports</b> (Sky Go app, or a NOW day or month pass) and <b>TNT Sports</b> (HBO Max, premium plan).</li>'+
+    '<li>Saturday 3pm kick-offs are never shown live in the UK.</li>'+
+    '<li>BBC Sport has highlights, including Match of the Day.</li></ul></div></div>';
+  html+='<div class="section"><div class="sectionhead"><h2>Next round</h2></div>'+
+    '<p class="sectionsub">No Premier League games until 10 October. Kick-off times are in your local time, home team first.</p>'+filterToggle()+'</div>';
+  var g1=groupByDay(fx);
+  g1.days.forEach(function(k){
+    html+='<div class="section"><div class="sectionhead"><h2>'+k+'</h2></div><p class="sectionsub">'+plural(g1.map[k].length,"match")+(tvOnly?' on live TV':'')+'</p>'+g1.map[k].map(fixtureCard).join("")+'</div>';
+  });
+  html+='<div class="section"><div class="sectionhead"><h2>More on TV</h2></div>'+
+    '<p class="sectionsub">Televised games already announced for later in October and early November. Only TV picks are listed because the live feed does not cover these rounds yet. The next batch of selections was due on 21 September and may not be included yet.</p>';
+  var g2=groupByDay(lt);
+  g2.days.forEach(function(k){
+    html+='<h3 style="margin-top:14px">'+k+'</h3>'+g2.map[k].map(pickRow).join("");
+  });
+  html+='</div>';
+  $("#panel-fixtures").innerHTML=html;
+}
+
+/* ---------- Table tab ---------- */
+function nextInfo(a){
+  var mine=function(g){return g.h===a||g.a===a;};
+  var nxt=FIX.filter(mine).sort(function(x,y){return x.t-y.t;})[0];
+  var tvs=FIX.concat(LATER).filter(function(g){return mine(g)&&g.tv!=="NONE";}).sort(function(x,y){return x.t-y.t;})[0];
+  return {next:nxt,tv:tvs};
+}
+function fxLine(g,a){
+  var home=g.h===a, opp=home?g.a:g.h;
+  return (home?"vs ":"at ")+nm(opp)+' <span class="mut">'+dayStr(g.t)+', '+timeStr(g.t)+'</span> '+chip(g.tv);
+}
+function teamPanel(a){
+  var items=[];
+  RESULTS.filter(function(g){return g.h===a||g.a===a;}).forEach(function(g){
+    var home=g.h===a, us=home?g.hg:g.ag, them=home?g.ag:g.hg, opp=home?g.a:g.h;
+    var k=us>them?"w":us<them?"l":"d";
+    items.push('<li><span class="res '+k+'">'+(k==="w"?"Won":k==="l"?"Lost":"Drew")+'</span><span>'+us+'\u2013'+them+' '+(home?"vs":"at")+' '+nm(opp)+' <span class="mut">'+dayStr(g.t)+'</span></span></li>');
+  });
+  var n=nextInfo(a);
+  if(n.next) items.push('<li><span class="res next">Next</span><span>'+fxLine(n.next,a)+'</span></li>');
+  if(n.tv && n.tv!==n.next) items.push('<li><span class="res next">On TV</span><span>'+fxLine(n.tv,a)+'</span></li>');
+  else if(!n.tv) items.push('<li><span class="mut">No televised game announced yet.</span></li>');
+  return '<ul>'+items.join("")+'</ul>';
+}
+function renderTable(){
+  var html='<div class="section first"><div class="sectionhead"><h2>League table</h2></div><p class="sectionsub">After 5 games each. P played, W won, D drawn, L lost.</p>'+
+    '<div class="thead"><span>#</span><span>Team</span><span>P</span><span>W</span><span>D</span><span>L</span><span>Pts</span></div>';
+  TABLE.forEach(function(t,i){
+    if(i===17) html+='<div class="cut"><span>Relegation zone</span></div>';
+    html+='<button type="button" class="trow" aria-expanded="false" aria-controls="tp-'+t.a+'" data-team="'+t.a+'">'+
+      '<span class="rk">'+t.pos+'</span><span class="tm">'+dot(t.a)+'<span class="nm">'+nm(t.a)+'</span></span>'+
+      '<span class="num">'+t.p+'</span><span class="num">'+t.w+'</span><span class="num">'+t.d+'</span><span class="num">'+t.l+'</span><span class="num pts">'+t.pts+'</span></button>'+
+      '<div class="panel" id="tp-'+t.a+'" hidden></div>';
+  });
+  html+='</div>';
+  $("#tableBody").innerHTML=html;
+}
+
+/* ---------- Header, footer, staleness ---------- */
+function renderChrome(){
+  var st=roundStats(RESULTS), onTv=RESULTS.filter(function(g){return g.tv!=="NONE";}).length;
+  $("#asof").textContent="Updated "+dayStr(SNAP)+", "+timeStr(SNAP);
+  $("#counts").innerHTML='<li class="hl"><b>'+st.goals+'</b>goals</li><li><b>'+st.avg+'</b>per game</li><li><b>'+onTv+'</b>of '+RESULTS.length+' on TV</li>';
+  var tz=""; try{tz=Intl.DateTimeFormat().resolvedOptions().timeZone;}catch(e){}
+  $("#foot").textContent="Scores, table and win probabilities are a snapshot from "+dayStr(SNAP)+", "+timeStr(SNAP)+(tz?" ("+tz+" time)":"")+". TV details are as published by the league and broadcasters at that time and can change. This page does not update itself: ask Claude in the chat to refresh it.";
+  var passed=FIX.some(function(g){return g.t.getTime()<Date.now();});
+  if(passed){
+    $("#banner").innerHTML='<p class="banner">Some fixtures in this snapshot have now kicked off. Ask Claude in the chat to refresh the scores, table and TV listings.</p>';
+  }
+}
+
+/* ---------- Interaction ---------- */
+var TABS=["results","fixtures","table"];
+function showTab(name){
+  TABS.forEach(function(t){
+    var on=t===name;
+    $("#panel-"+t).hidden=!on;
+    $("#tab-"+t).setAttribute("aria-selected",on?"true":"false");
+  });
+  window.scrollTo(0,0);
+}
+TABS.forEach(function(t,i){
+  var el=$("#tab-"+t);
+  el.addEventListener("click",function(){showTab(t);});
+  el.addEventListener("keydown",function(e){
+    var j=e.key==="ArrowRight"?i+1:e.key==="ArrowLeft"?i-1:null;
+    if(j===null) return;
+    j=(j+TABS.length)%TABS.length; showTab(TABS[j]); $("#tab-"+TABS[j]).focus();
+  });
+});
+document.addEventListener("click",function(e){
+  var f=e.target.closest("[data-tvfilter]");
+  if(!f) return;
+  tvOnly=!tvOnly;
+  renderResults(); renderFixtures();
+  var again=document.querySelector("#"+f.closest("section").id+" [data-tvfilter]");
+  if(again) again.focus();
+});
+$("#tableBody").addEventListener("click",function(e){
+  var btn=e.target.closest(".trow"); if(!btn) return;
+  var panel=document.getElementById(btn.getAttribute("aria-controls"));
+  var open=btn.getAttribute("aria-expanded")==="true";
+  if(!open && !panel.innerHTML) panel.innerHTML=teamPanel(btn.getAttribute("data-team"));
+  btn.setAttribute("aria-expanded",open?"false":"true");
+  panel.hidden=open;
+});
+
+renderChrome(); renderResults(); renderFixtures(); renderTable();
+})();
+</script>
+</body>
+</html>
