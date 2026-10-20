@@ -1,0 +1,907 @@
+<title>Large-Cap Equity Monitor</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;500;600&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout: a research terminal on paper. Sticky masthead, company rail on the left (chips on phones), tabbed workspace on the right. */
+:root{
+  --bg:#EEF1F4; --surface:#FFFFFF; --surface-2:#F6F8FA; --ink:#101A2B; --muted:#5A6676; --line:#D9DFE6; --line-strong:#BFC8D3;
+  --accent:#0D5C63; --accent-soft:#DCEDEE; --on-accent:#FFFFFF;
+  --uk:#7A2E3A; --uk-soft:#F3E3E5; --us:#23466E; --us-soft:#E0E8F2;
+  --good:#1E7A46; --good-soft:#DFF1E6; --bad:#B4382E; --bad-soft:#F7E1DE; --warn:#946200; --warn-soft:#F6ECD3;
+  --bar:#0D5C63; --bar-neg:#B4382E; --grid:#E3E8EE;
+  --display:"Bricolage Grotesque","Avenir Next","Segoe UI",system-ui,sans-serif;
+  --body:"Hanken Grotesk",system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:"Spline Sans Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0B111B; --surface:#121A27; --surface-2:#172131; --ink:#E6ECF3; --muted:#93A0B2; --line:#243043; --line-strong:#33425A;
+    --accent:#4FB3B9; --accent-soft:#163238; --on-accent:#06191B;
+    --uk:#E58F9B; --uk-soft:#3A1E24; --us:#8FB5E3; --us-soft:#1A2A40;
+    --good:#5CC48A; --good-soft:#15301F; --bad:#EF8378; --bad-soft:#3A1D1A; --warn:#E3B55A; --warn-soft:#352A12;
+    --bar:#4FB3B9; --bar-neg:#EF8378; --grid:#223043; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0B111B; --surface:#121A27; --surface-2:#172131; --ink:#E6ECF3; --muted:#93A0B2; --line:#243043; --line-strong:#33425A;
+  --accent:#4FB3B9; --accent-soft:#163238; --on-accent:#06191B;
+  --uk:#E58F9B; --uk-soft:#3A1E24; --us:#8FB5E3; --us-soft:#1A2A40;
+  --good:#5CC48A; --good-soft:#15301F; --bad:#EF8378; --bad-soft:#3A1D1A; --warn:#E3B55A; --warn-soft:#352A12;
+  --bar:#4FB3B9; --bar-neg:#EF8378; --grid:#223043; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;-webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+button,input,select{font:inherit;color:inherit}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num,td.n,th.n{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* Masthead */
+.mast{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.mast-in{max-width:1320px;margin:0 auto;padding-block:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center}
+.brand{display:flex;align-items:baseline;gap:10px;margin-right:auto;min-width:0}
+.brand h1{margin:0;font-family:var(--display);font-weight:700;font-size:22px;letter-spacing:-.01em;line-height:1.1}
+.brand span{color:var(--muted);font-size:13px}
+.ctrls{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;font-size:13px;color:var(--muted)}
+.ctrls label{display:flex;gap:6px;align-items:center}
+.ctrls input{width:78px;padding:5px 8px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface-2);font-family:var(--mono);font-size:13px}
+.viewbtn{border:1px solid var(--line-strong);background:var(--surface);border-radius:999px;padding:6px 14px;cursor:pointer;font-weight:600;font-size:13px}
+.viewbtn[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+
+/* Shell */
+.wrap{max-width:1320px;margin:0 auto;padding-block:18px 60px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:260px minmax(0,1fr);gap:22px;align-items:start}
+.rail{position:sticky;top:calc(env(safe-area-inset-top,0px) + 74px);display:flex;flex-direction:column;gap:16px}
+.rail h2{margin:0 0 6px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:600;display:flex;justify-content:space-between}
+.rail ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.co{width:100%;display:grid;grid-template-columns:1fr auto;gap:0 8px;text-align:left;border:1px solid transparent;background:transparent;border-radius:8px;padding:8px 10px;cursor:pointer}
+.co:hover{background:var(--surface)}
+.co[aria-current="true"]{background:var(--surface);border-color:var(--line-strong)}
+.co b{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.co .tk{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.co .px{font-family:var(--mono);font-size:13px;text-align:right}
+.co .mc{font-size:12px;color:var(--muted);text-align:right;font-family:var(--mono)}
+.mk{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.06em;padding:1px 6px;border-radius:4px;vertical-align:1px}
+.mk.uk{background:var(--uk-soft);color:var(--uk)}
+.mk.us{background:var(--us-soft);color:var(--us)}
+.railnote{font-size:12px;color:var(--muted);line-height:1.45}
+
+main{min-width:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+
+/* Company header */
+.chead{padding:18px 20px 0;display:flex;flex-direction:column;gap:12px}
+.ctop{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between}
+.cname{min-width:0}
+.cname .eyebrow{font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cname h2{margin:2px 0 0;font-family:var(--display);font-weight:700;font-size:clamp(26px,4vw,36px);line-height:1.05;letter-spacing:-.015em;text-wrap:balance}
+.quote{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end}
+.quote .big{font-family:var(--mono);font-size:28px;font-weight:500;line-height:1}
+.quote .sub{font-size:12px;color:var(--muted)}
+.pxedit{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--muted)}
+.pxedit input{width:96px;padding:5px 8px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface-2);font-family:var(--mono);font-size:13px}
+.linkbtn{background:none;border:0;color:var(--accent);cursor:pointer;padding:0;font-size:12px;text-decoration:underline}
+.tabs{display:flex;gap:2px;overflow-x:auto;margin:4px -20px 0;padding:0 20px;border-bottom:1px solid var(--line);scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{border:0;background:none;padding:10px 12px;cursor:pointer;font-weight:600;font-size:14px;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tabbody{padding:20px;display:flex;flex-direction:column;gap:26px}
+
+/* Blocks */
+h3{margin:0 0 10px;font-family:var(--display);font-weight:600;font-size:19px;letter-spacing:-.005em}
+h4{margin:0 0 8px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.lede{margin:0;max-width:72ch}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0;background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.tile{background:var(--surface);padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0;border-right:1px solid var(--line);border-bottom:1px solid var(--line);margin:0 -1px -1px 0}
+.tile .k{font-size:12px;color:var(--muted)}
+.tile .v{font-family:var(--mono);font-size:18px;font-weight:500}
+.tile .h{font-size:11px;color:var(--muted)}
+.seg{display:flex;flex-direction:column;gap:7px}
+.segrow{display:grid;grid-template-columns:minmax(0,1fr) 46px;gap:4px 10px;align-items:center;font-size:13px}
+.segbar{grid-column:1 / -1;height:6px;background:var(--grid);border-radius:3px;overflow:hidden}
+.segbar i{display:block;height:100%;background:var(--bar)}
+
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+thead th{background:var(--surface-2);font-size:12px;color:var(--muted);font-weight:600;position:sticky;top:0}
+td.n,th.n{text-align:right}
+tbody tr:last-child td{border-bottom:0}
+tr.sub td{color:var(--muted)}
+tr.sec td{background:var(--surface-2);font-weight:600;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+td.lab{position:sticky;left:0;background:var(--surface);font-weight:500}
+tr.sec td.lab{background:var(--surface-2)}
+.est{color:var(--warn);font-weight:600}
+.note{font-size:12px;color:var(--muted);margin:8px 0 0;max-width:90ch}
+
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.neutral{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.up{color:var(--good)} .down{color:var(--bad)}
+
+.ratingbar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--grid)}
+.ratingbar i{display:block;height:100%}
+.ratingbar .b{background:var(--good)} .ratingbar .h{background:var(--warn)} .ratingbar .s{background:var(--bad)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:6px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:0}
+
+.tgt{position:relative;height:38px;margin-top:6px}
+.tgt .rail2{position:absolute;left:0;right:0;top:16px;height:4px;background:var(--grid);border-radius:2px}
+.tgt .rng{position:absolute;top:16px;height:4px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:2px}
+.tgt .mark{position:absolute;top:8px;width:2px;height:20px;transform:translateX(-1px)}
+.tgt .mark.px{background:var(--ink)}
+.tgt .mark.avg{background:var(--accent)}
+.tgt .lbl{position:absolute;top:28px;font-size:11px;font-family:var(--mono);transform:translateX(-50%);white-space:nowrap;color:var(--muted)}
+
+.news{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.news li{display:grid;grid-template-columns:92px minmax(0,1fr);gap:4px 14px;padding:11px 0;border-bottom:1px solid var(--line)}
+.news li:last-child{border-bottom:0}
+.news .d{font-family:var(--mono);font-size:12px;color:var(--muted);padding-top:2px}
+.news .t{font-weight:600}
+.news .s{font-size:13px;color:var(--muted)}
+.news .s a{font-size:12px}
+.tag{font-size:10px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:var(--muted);margin-right:6px}
+
+.reports{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.rep{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border:1px solid var(--line);border-radius:8px;text-decoration:none;color:var(--ink);background:var(--surface-2)}
+.rep:hover{border-color:var(--accent)}
+.rep b{font-weight:600}
+.rep span{font-size:12px;color:var(--muted)}
+
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
+.chart svg{width:100%;height:auto;display:block}
+.chart .axis{fill:var(--muted);font-family:var(--mono);font-size:10px}
+.chart .vl{fill:var(--ink);font-family:var(--mono);font-size:10px}
+.chart .gl{stroke:var(--grid);stroke-width:1}
+.chart .bp{fill:var(--bar)} .chart .bn{fill:var(--bar-neg)}
+.chart .bp.last{fill:var(--accent)}
+
+/* Compare */
+.cmphead{padding:18px 20px;display:flex;flex-wrap:wrap;gap:10px 20px;align-items:flex-end;justify-content:space-between;border-bottom:1px solid var(--line)}
+.cmphead h2{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(24px,3.4vw,32px);letter-spacing:-.015em}
+.cmp th{cursor:pointer;user-select:none}
+.cmp th[aria-sort="ascending"]::after{content:" ▲";font-size:9px}
+.cmp th[aria-sort="descending"]::after{content:" ▼";font-size:9px}
+.cmp td.lab button{border:0;background:none;padding:0;cursor:pointer;font-weight:600;color:var(--ink);text-align:left}
+.cmp td.lab button:hover{color:var(--accent);text-decoration:underline}
+.backdrop{padding:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px}
+
+footer{max-width:1320px;margin:0 auto;padding-block:0 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));font-size:12px;color:var(--muted)}
+footer p{max-width:100ch;margin:0 0 8px}
+
+@media (max-width:900px){
+  .wrap{grid-template-columns:minmax(0,1fr)}
+  .rail{position:static;flex-direction:column;gap:10px}
+  .rail ul{flex-direction:row;overflow-x:auto;gap:6px;padding-bottom:4px}
+  .co{width:auto;min-width:150px;background:var(--surface);border-color:var(--line)}
+  .railnote{display:none}
+  .grid2{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:520px){
+  .chead,.tabbody,.cmphead,.backdrop{padding-left:14px;padding-right:14px}
+  .tabs{margin:4px -14px 0;padding:0 14px}
+  .news li{grid-template-columns:minmax(0,1fr)}
+  .brand span{display:none}
+}
+@media (prefers-reduced-motion:no-preference){.tabbody{animation:fade .18s ease-out}@keyframes fade{from{opacity:.4}to{opacity:1}}}
+</style>
+
+<header class="mast">
+  <div class="mast-in">
+    <div class="brand"><h1>Large-Cap Equity Monitor</h1><span id="asof"></span></div>
+    <div class="ctrls">
+      <button class="viewbtn" id="btnCompare" aria-pressed="false">Compare all 10</button>
+      <label for="fx">GBP/USD <input id="fx" type="number" step="0.0001" min="0.5" max="3"></label>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="rail" aria-label="Companies">
+    <div><h2><span>FTSE 100 · top 5</span><span>£ mkt cap</span></h2><ul id="listUK"></ul></div>
+    <div><h2><span>S&amp;P 500 · top 5</span><span>$ mkt cap</span></h2><ul id="listUS"></ul></div>
+    <p class="railnote">Ranked by market value. You can override any share price in the company header and every valuation ratio recalculates. Overrides stay in this browser only.</p>
+  </nav>
+  <main id="main"></main>
+</div>
+
+<footer>
+  <p><b>Data notes.</b> Prices are closing prices for 16 Oct 2026 (US) and 19 Oct 2026 (UK). Latest-period results, balance sheets, broker views and news come from company releases, SEC/RNS filings and market coverage gathered on 20 Oct 2026; each item links to its source. Earlier fiscal years are compiled from company annual reports. Figures marked <span class="est">≈</span> are estimates or derived values, so check them against the filing before relying on them. Broker consensus figures come from aggregators (MarketBeat, Benzinga, S&amp;P Global via StockAnalysis, Bullstory and others) whose analyst pools and dates differ.</p>
+  <p><b>Method.</b> EV = market cap + gross debt − cash and investments (latest balance sheet, leases excluded unless stated). ROA, ROE and ROIC use average opening/closing balances; ROIC = EBIT × (1 − 25%) ÷ (debt + equity). The 3-year and 5-year returns are averages of the annual ratios. CAPE = price ÷ average inflation-adjusted EPS over the last 10 fiscal years (US CPI-U for USD reporters, UK CPI for sterling). Dividend growth is the compound annual growth in declared dividend per share. For HSBC, enterprise value, EBITDA and debt ratios are not meaningful, so bank metrics are shown instead. None of this is investment advice.</p>
+</footer>
+
+<script>
+"use strict";
+const AS_OF = "20 Oct 2026";
+const DEFAULT_FX = 1.34; // GBP/USD, approximate Oct 2026
+const CPI = {
+  USD:{2016:240.0,2017:245.1,2018:251.1,2019:255.7,2020:258.8,2021:271.0,2022:292.7,2023:304.7,2024:313.7,2025:322.2,2026:330.0,now:330.0},
+  GBP:{2016:100.7,2017:103.4,2018:105.9,2019:107.8,2020:108.7,2021:111.6,2022:121.7,2023:130.5,2024:133.9,2025:138.2,2026:142.0,now:142.0}
+};
+
+/* ---------- Market & industry backdrop ---------- */
+const MARKET_NEWS = [
+  {d:"20 Oct 2026",h:"FTSE 100 slips as banks weigh; HSBC, Lloyds and NatWest down 1.6–2.3%. Rio Tinto lower as copper eases; Shell firmer on elevated oil.",s:"Reuters via Investing.com",u:"https://au.investing.com/news/economy-news/ftse-100-slips-as-banks-weigh-defensive-stockslimit-decline-4700991"},
+  {d:"19 Oct 2026",h:"FTSE 100 closes 1.08% lower at 10,765.",s:"Trading Economics",u:"https://tradingeconomics.com/united-kingdom/stock-market"},
+  {d:"16 Oct 2026",h:"Tech sell-off as AI software valuations reverse: Nasdaq −2.15%, S&P 500 −1.09% to 7,659.44, VIX 20.1.",s:"Motley Fool",u:"https://www.fool.com/coverage/stock-market-today/2026/10/16/stock-market-today-oct-16-tech-stocks-plunge-as-ai-software-valuations-reverse/"},
+  {d:"14 Oct 2026",h:"FTSE 100 reaches a three-week high of 10,724.86, led by AstraZeneca, GSK and defence stocks.",s:"BBN Times",u:"https://www.bbntimes.com/financial/ftse-100-climbs-to-10-724-86-a-three-week-high-as-astrazeneca-gsk-and-defence-stocks-lead"},
+  {d:"10 Aug 2026",h:"Oil: Brent at $84.64 as hopes fade for a reopening of the Strait of Hormuz. Prices have swung between about $73 and $110+ since the late-February strikes.",s:"Al Jazeera",u:"https://aljazeera.com/economy/2026/8/10/oil-prices-stocks-surge-as-hormuz-closure-drags-on"}
+];
+
+/* ---------- Company data ----------
+   Values in billions of reporting currency unless stated; per-share in reporting currency.
+   est: {field:[year indexes]} marks estimated/derived values. */
+const COMPANIES = [
+/* ===================== UK ===================== */
+{
+  id:"HSBA", name:"HSBC Holdings", ticker:"HSBA", exch:"LSE", mkt:"UK", sector:"Banks",
+  tradeCcy:"GBP", repCcy:"USD", price:1397.2, priceDate:"19 Oct 2026", shares:17.25, bank:true,
+  years:["2020","2021","2022","2023","2024","2025"], fyNote:"Year to 31 December",
+  desc:"Global universal bank headquartered in London, with most of its profit earned in Asia. Since its 2024–25 restructuring it reports four businesses: Hong Kong (retail and commercial banking, including Hang Seng Bank, now fully owned), UK ring-fenced bank, Corporate & Institutional Banking (transaction banking, markets and financing for multinationals) and International Wealth & Premier Banking. Earnings are highly sensitive to Hong Kong dollar and sterling interest rates through its structural hedge.",
+  segments:[["Hong Kong",32],["Corporate & Institutional Banking",30],["UK",20],["International Wealth & Premier Banking",18]], segNote:"Approximate share of 2025 revenue excluding notable items",
+  is:{rev:[50.43,49.55,51.73,66.06,65.85,68.27],pbt:[8.78,18.91,17.53,30.35,32.31,29.9],ni:[3.90,12.61,14.35,22.43,22.92,21.1],eps:[0.19,0.62,0.72,1.14,1.24,1.20],dps:[0.15,0.25,0.32,0.61,0.87,0.75],rote:[3.1,8.3,9.9,14.6,14.6,13.3],cet1:[15.9,15.8,14.2,14.8,14.9,14.9]},
+  bs:{ta:[2984,2958,2967,3039,3017,3200],te:[196.4,198.2,187.5,185.3,185.0,190.0]},
+  est:{ni:[5],ta:[5],te:[5]},
+  lbs:{date:"30 Jun 2026",te:190,bvps:9.9,rows:[["CET1 ratio","14.1%"],["Net interest margin (H1 annualised)","1.61%"],["Leverage ratio","4.9%"],["Book value per share (≈)","$9.9"]]},
+  interim:{label:"Half-year to 30 Jun 2026",rows:[["Revenue","$37.7bn","+11%"],["Profit before tax","$19.5bn","+23%"],["PBT ex notable items (const. ccy)","$20.4bn","+6%"],["RoTE (annualised)","18.2%","1H25: 14.7%"],["CET1 ratio","14.1%","FY25: 14.9%"],["Interim dividends declared","$0.20","flat"]],src:"https://www.hsbc.com/investors/results-and-announcements/all-reporting/interim-results-2026-quick-read"},
+  eps10:{start:2016,v:[0.07,0.48,0.63,0.30,0.19,0.62,0.72,1.14,1.24,1.20]},
+  brokers:{consensus:"Hold",n:8,buy:0,hold:8,sell:0,avg:1373,low:1120,high:1520,asOf:"5 Aug 2026",src:"MarketBeat (London line)",u:"https://www.marketbeat.com/instant-alerts/hsbc-lonhsba-receives-hold-rating-from-deutsche-bank-aktiengesellschaft-2026-08-05/",
+    calls:[["Deutsche Bank","Hold","1,520p","5 Aug 2026"],["Jefferies","Hold","1,120p","Aug 2026"]],
+    note:"London-line coverage on MarketBeat is all Hold. The Hong Kong line is more bullish: 12 Strong Buy, 22 Buy and 10 Hold, average HK$178 (TradersUnion, 1 Oct 2026). On the NYSE ADR line, 6 of 14 analysts rate it Buy (Barchart)."},
+  news:[
+    {d:"27 Oct 2026",tag:"Upcoming",h:"Q3 2026 results scheduled.",s:"HSBC investor calendar",u:"https://www.ad-hoc-news.de/boerse/news/nebenwerte/hsbc-stock-falls-3-70-percent-after-a-strong-rally/70212041"},
+    {d:"20 Oct 2026",tag:"Stock",h:"Banks lead the FTSE lower; HSBC among lenders down 1.6–2.3% intraday.",s:"Reuters via Investing.com",u:"https://au.investing.com/news/economy-news/ftse-100-slips-as-banks-weigh-defensive-stockslimit-decline-4700991"},
+    {d:"1 Oct 2026",tag:"Stock",h:"Shares fall about 3.7% after a strong rally as traders cite valuation and take profits.",s:"AD HOC NEWS",u:"https://www.ad-hoc-news.de/boerse/news/nebenwerte/hsbc-stock-falls-3-70-percent-after-a-strong-rally/70212041"},
+    {d:"4 Aug 2026",tag:"Results",h:"H1 PBT $19.5bn (+23%), RoTE 18.2%. Buybacks resume with $1bn programme, the first since October 2025. CET1 down to 14.1% after the Hang Seng Bank privatisation.",s:"HSBC",u:"https://www.hsbc.com/news-and-views/news/media-releases/2026/hsbc-holdings-plc-interim-results-2026"},
+    {d:"2026",tag:"Governance",h:"Brendan Nelson confirmed as Group Chair after acting as interim chair since October 2025.",s:"Market coverage",u:"https://www.ad-hoc-news.de/boerse/news/nebenwerte/hsbc-stock-falls-3-70-percent-after-a-strong-rally/70212041"},
+    {d:"25 Feb 2026",tag:"Results",h:"FY25 reported PBT $29.9bn (−7%) after notable items (BoCom dilution, French portfolio sale, legal provisions). PBT ex notable items a record $36.6bn. Total 2025 dividend $0.75.",s:"AJ Bell",u:"https://www.ajbell.co.uk/news/articles/hsbc-pretax-profit-falls-7-2025-bank-takes-decisive-action"}
+  ],
+  reports:[
+    {t:"Interim Results 2026 (quick read)",d:"4 Aug 2026",u:"https://www.hsbc.com/investors/results-and-announcements/all-reporting/interim-results-2026-quick-read"},
+    {t:"Interim Report 2026 (PDF)",d:"Aug 2026",u:"https://www.hsbc.com/-/files/hsbc/investors/results-and-announcements/stock-exchange-announcements/2026/august/sea-210826-e-interim-report-2026-with-employee-share-plans.pdf"},
+    {t:"Annual Results 2025",d:"25 Feb 2026",u:"https://hsbc.com/investors/results-and-announcements/all-reporting/annual-results-2025-quick-read"},
+    {t:"Investor relations",d:"All reports & presentations",u:"https://www.hsbc.com/investors"}
+  ],
+  next:"Q3 2026 results: 27 Oct 2026"
+},
+{
+  id:"SHEL", name:"Shell", ticker:"SHEL", exch:"LSE", mkt:"UK", sector:"Integrated oil & gas",
+  tradeCcy:"GBP", repCcy:"USD", price:3932.0, priceDate:"19 Oct 2026", shares:5.70,
+  years:["2020","2021","2022","2023","2024","2025"], fyNote:"Year to 31 December. EBITDA and EBIT are Shell's adjusted (CCS) measures.",
+  desc:"The world's largest LNG trader and one of the five oil supermajors. Integrated Gas (LNG liquefaction, shipping and trading) and Upstream (oil and gas production, notably Brazil, the Gulf of Mexico and Kazakhstan) produce most of the profit. Downstream it runs Marketing (around 47,000 branded retail sites and lubricants), Chemicals & Products (refining and trading) and a smaller Renewables & Energy Solutions arm. Strategy under CEO Wael Sawan focuses on value over volume, cost cuts and at least 40% of operating cash flow returned to shareholders.",
+  segments:[["Upstream",38],["Integrated Gas",34],["Marketing",16],["Chemicals & Products",10],["Renewables & Energy Solutions",2]], segNote:"Approximate share of 2025 adjusted earnings",
+  is:{rev:[183.2,261.5,381.3,316.6,289.0,267.0],ebitda:[32.5,55.0,84.9,68.5,63.6,55.5],ebit:[7.5,31.0,61.0,44.5,39.6,31.5],ni:[-21.68,20.10,42.31,19.36,16.09,17.84],eps:[-2.78,2.58,5.71,2.79,2.55,3.07],dps:[0.653,0.8935,1.0275,1.245,1.39,1.446],ie:[4.1,3.6,3.2,4.6,4.9,4.8],fcf:[17.7,32.2,39.4,35.1,39.4,26.1]},
+  bs:{ta:[379.3,404.4,443.0,406.3,387.6,372.0],te:[158.3,175.3,195.6,188.0,180.2,176.0],debt:[107.6,99.7,83.8,82.2,77.2,76.0],cash:[31.8,37.0,40.2,38.8,39.1,30.3]},
+  est:{rev:[5],ebitda:[0,1,2,3,4,5],ebit:[0,1,2,3,4,5],ie:[0,1,2,3,4,5],ta:[5],te:[5],debt:[5],cash:[5]},
+  lbs:{date:"30 Jun 2026",ta:380.5,tl:198.7,te:181.8,debt:null,cash:null,nd:41.8,rows:[["Total assets","$380.5bn"],["Total liabilities","$198.7bn"],["Total equity (≈, derived)","$181.8bn"],["Net debt (incl. leases)","$41.8bn"],["Gearing","18.7%"]]},
+  interim:{label:"Q2 2026 (quarter to 30 Jun)",rows:[["Adjusted earnings","$9.8bn",""],["Adjusted EBITDA","$20.7bn","+56%"],["Cash flow from operations","$21.4bn",""],["Free cash flow","$17.5bn",""],["Shareholder distributions","$5.2bn","$3.0bn buybacks"],["Net debt","$41.8bn","Q1: $52.6bn"]],src:"https://www.stocktitan.net/news/SHEL/shell-plc-2nd-and-half-year-quarter-2026-unaudited-0vi7974azefq.html"},
+  eps10:{start:2016,v:[0.58,1.58,2.82,1.97,-2.78,2.58,5.71,2.79,2.55,3.07]},
+  brokers:{consensus:"Moderate Buy",n:12,buy:6,hold:6,sell:0,avg:3775,low:2700,high:4500,asOf:"9 Aug 2026",src:"MarketBeat (London line)",u:"https://www.marketbeat.com/instant-alerts/shell-lonshel-given-buy-rating-at-berenberg-bank-2026-08-03/",
+    calls:[["Berenberg","Buy","4,000p","3 Aug 2026"],["RBC","Hold (initiation)","4,000p","15 Jul 2026"],["Mizuho","Neutral (initiation)","$98 ADR","20 Jul 2026"],["Piper Sandler","Neutral (initiation)","$88 ADR","23 Jul 2026"],["BNP Paribas Exane","Downgrade to Neutral","—","17 Apr 2026"],["Rothschild & Co Redburn","Downgrade to Neutral","—","9 Apr 2026"],["Morgan Stanley","Downgrade to Equal Weight","—","24 Mar 2026"]],
+    note:"Investing.com showed a similar average of £37.34 from 15 analysts (5 Aug). The NYSE ADR consensus is Hold (14 Hold, 5 Buy; avg $98.19)."},
+  news:[
+    {d:"29 Oct 2026",tag:"Upcoming",h:"Q3 2026 results expected around the end of October (date to be confirmed).",s:"Company calendar",u:"https://www.shell.com/investors.html"},
+    {d:"20 Oct 2026",tag:"Stock",h:"Shell rises as oil prices stay elevated, outperforming a weaker FTSE 100.",s:"Sharecast",u:"https://www.sharecast.com/news/risers-and-fallers/ftse-100-ithaca-energy-shell-antofagasta-rio-tinto-aberdeen--23892259.html"},
+    {d:"10 Aug 2026",tag:"Industry",h:"Brent at $84.64 as the Strait of Hormuz closure drags on. Oil swung from about $90 to above $110 in April–May.",s:"Al Jazeera",u:"https://aljazeera.com/economy/2026/8/10/oil-prices-stocks-surge-as-hormuz-closure-drags-on"},
+    {d:"30 Jul 2026",tag:"Results",h:"Q2 adjusted earnings $9.8bn and record CFFO of $21.4bn despite Middle East disruption. New $3bn buyback plus $1.2bn of previously suspended buybacks; net debt falls to $41.8bn.",s:"Stock Titan",u:"https://www.stocktitan.net/news/SHEL/shell-plc-2nd-and-half-year-quarter-2026-unaudited-0vi7974azefq.html"},
+    {d:"Jul 2026",tag:"Industry",h:"Oil jumps more than 4% after Iran says it has closed the Strait of Hormuz again; Shell and BP shares rise.",s:"AskTraders",u:"https://www.asktraders.com/analysis/shell-and-bp-shares-rise-as-oil-jumps-on-renewed-strait-of-hormuz-clash/"},
+    {d:"5 Feb 2026",tag:"Results",h:"FY25 adjusted earnings $18.5bn (−22%); quarterly dividend raised 4% to $0.372; $3.5bn buyback.",s:"Offshore Technology",u:"https://www.offshore-technology.com/news/shell-reports-income-q4-2025/"}
+  ],
+  reports:[
+    {t:"Q2 2026 results release",d:"30 Jul 2026",u:"https://www.marketscreener.com/news/shell-quarterly-results-q2-2026-quarterly-press-release-ce7f51d3d180f423"},
+    {t:"Q4 & FY 2025 unaudited results",d:"5 Feb 2026",u:"https://seekingalpha.com/pr/20388957"},
+    {t:"Investor centre (Annual Report 2025)",d:"Annual Report & Form 20-F",u:"https://www.shell.com/investors.html"}
+  ],
+  next:"Q3 2026 results: expected late Oct 2026"
+},
+{
+  id:"AZN", name:"AstraZeneca", ticker:"AZN", exch:"LSE / NYSE", mkt:"UK", sector:"Pharmaceuticals",
+  tradeCcy:"GBP", repCcy:"USD", price:12400, priceDate:"19 Oct 2026", shares:1.55,
+  years:["2020","2021","2022","2023","2024","2025"], fyNote:"Year to 31 December. Reported (IFRS) figures; Core EPS shown separately.",
+  desc:"Cambridge-based biopharmaceutical group and the UK's largest drugmaker. Oncology is the growth engine (Tagrisso, Imfinzi, Enhertu and Datroway with Daiichi Sankyo, Calquence, Lynparza). BioPharmaceuticals covers cardiovascular, renal and metabolism (Farxiga, now facing US generics) and respiratory and immunology (Breztri, Fasenra, Saphnelo). Alexion supplies the Rare Disease franchise (Ultomiris, Soliris, Strensiq). The company targets $80bn revenue by 2030 and is investing $50bn in US manufacturing and R&D under a 2025 pricing and tariff agreement with the US government.",
+  segments:[["Oncology",43],["Cardiovascular, Renal & Metabolism",22],["Respiratory & Immunology",15],["Rare Disease",15],["Vaccines, immune therapies & other",5]], segNote:"Approximate share of FY2025 total revenue",
+  is:{rev:[26.62,37.42,44.35,45.81,54.07,58.74],ebitda:[8.4,6.2,9.2,13.4,15.1,18.6],ebit:[5.16,1.06,3.76,8.24,10.0,13.6],ni:[3.20,0.11,3.29,5.96,7.04,10.23],eps:[2.44,0.08,2.12,3.84,4.54,6.60],coreEps:[4.02,5.29,6.66,7.26,8.21,9.16],dps:[2.80,2.87,2.90,2.90,3.10,3.20],ie:[1.29,1.33,1.25,1.28,1.33,1.40],fcf:[3.0,4.6,7.1,6.0,7.6,9.0]},
+  bs:{ta:[66.73,105.36,96.48,101.12,104.04,112.0],te:[15.64,39.27,37.08,39.17,41.3,47.0],debt:[20.3,30.0,28.1,29.3,30.0,30.5],cash:[8.0,6.6,6.2,6.0,5.5,7.1]},
+  est:{ebitda:[0,1,2,3,4,5],ebit:[5],ie:[4,5],fcf:[0,1,2,3,4,5],ta:[5],te:[5],debt:[5],cash:[5]},
+  lbs:{date:"30 Jun 2026",ta:115.83,tl:65.46,te:50.37,debt:32.24,cash:5.33,rows:[["Total assets","$115.8bn"],["Total liabilities","$65.5bn"],["Total equity","$50.4bn"],["Gross debt","$32.2bn"],["Net debt","$26.9bn"]]},
+  interim:{label:"Half-year to 30 Jun 2026",rows:[["Total revenue","$30.7bn","+9% (+6% CER)"],["Q2 total revenue","$15.4bn","+5% CER"],["Core EPS","$5.21","+12%"],["Reported EPS","$3.60","+3% CER"],["Interim dividend","$1.06","+3c"],["FY26 guidance","Revenue mid-to-high single digit; Core EPS low double digit","reaffirmed"]],src:"https://www.astrazeneca.com/media-centre/press-releases/2026/h1-and-q2-2026-results.html"},
+  eps10:{start:2016,v:[2.76,2.37,1.70,1.03,2.44,0.08,2.12,3.84,4.54,6.60]},
+  brokers:{consensus:"Moderate Buy",n:10,buy:8,hold:2,sell:0,avg:211,low:120,high:240,tgtCcy:"USD",asOf:"31 Jul 2026",src:"MarketBeat / Walnut Invest (NYSE line, $ per share)",u:"https://www.marketbeat.com/instant-alerts/analysts-offer-predictions-for-astrazeneca-fy2026-earnings-2026-07-31/",
+    calls:[["Zacks consensus","—","$205.49 (range $120–240)","2026"]],
+    note:"Targets are for the NYSE line in dollars and are converted to pence at the GBP/USD rate above. I didn't find a London-line consensus in pence."},
+  news:[
+    {d:"6 Nov 2026",tag:"Upcoming",h:"9M & Q3 2026 results expected early November (date to be confirmed).",s:"Company calendar",u:"https://www.astrazeneca.com/investor-relations.html"},
+    {d:"14 Oct 2026",tag:"Stock",h:"AstraZeneca leads the FTSE 100 to a three-week high alongside GSK and defence stocks.",s:"BBN Times",u:"https://www.bbntimes.com/financial/ftse-100-climbs-to-10-724-86-a-three-week-high-as-astrazeneca-gsk-and-defence-stocks-lead"},
+    {d:"27 Jul 2026",tag:"Results",h:"H1 revenue $30.7bn (+9%), Core EPS $5.21 (+12%). Oncology and Rare Disease offset Farxiga US loss of exclusivity and China volume-based procurement. Guidance reaffirmed.",s:"AstraZeneca",u:"https://www.astrazeneca.com/media-centre/press-releases/2026/h1-and-q2-2026-results.html"},
+    {d:"10 Feb 2026",tag:"Results",h:"FY25 revenue $58.7bn (+8% CER), Core EPS $9.16, dividend raised 3% to $3.20.",s:"FCA NSM",u:"https://data.fca.org.uk/artefacts/NSM/RNS/59563de3-5a71-4031-9f0b-61dfc61dc769.html"},
+    {d:"Oct 2025",tag:"Industry",h:"US pricing and tariff agreement: three-year tariff grace period, $50bn US investment plan, discounted direct-to-consumer sales via TrumpRx.",s:"DCAT Value Chain Insights",u:"https://www.dcatvci.org/top-industry-news/astrazeneca-us-govt-sign-drug-pricing-tariff-agreement/"}
+  ],
+  reports:[
+    {t:"H1 & Q2 2026 results announcement (PDF)",d:"27 Jul 2026",u:"https://www.astrazeneca.com/content/dam/az/PDF/2026/h1q2/H1-and-Q2-2026-results-announcement.pdf"},
+    {t:"H1 2026 results presentation (PDF)",d:"27 Jul 2026",u:"https://www.astrazeneca.com/content/dam/az/PDF/2026/h1q2/H1-and-Q2-2026-results-presentation.pdf"},
+    {t:"FY & Q4 2025 results (RNS)",d:"10 Feb 2026",u:"https://data.fca.org.uk/artefacts/NSM/RNS/59563de3-5a71-4031-9f0b-61dfc61dc769.html"},
+    {t:"Annual reports",d:"Annual Report & Form 20-F",u:"https://www.astrazeneca.com/investor-relations/annual-reports.html"}
+  ],
+  next:"9M & Q3 2026 results: expected early Nov 2026"
+},
+{
+  id:"RIO", name:"Rio Tinto", ticker:"RIO", exch:"LSE / ASX", mkt:"UK", sector:"Mining",
+  tradeCcy:"GBP", repCcy:"USD", price:6715, priceDate:"19 Oct 2026", shares:1.623,
+  years:["2020","2021","2022","2023","2024","2025"], fyNote:"Year to 31 December. EBITDA is underlying EBITDA. Dual-listed (plc and Ltd); share count covers both.",
+  desc:"Anglo-Australian miner and the world's largest iron ore producer, with the Pilbara operations in Western Australia supplying most of its earnings. It is growing copper (Oyu Tolgoi in Mongolia, Kennecott in Utah, Escondida stake), has started the Simandou high-grade iron ore project in Guinea (first shipments late 2025, ramping to 60Mtpa by 2028), runs an aluminium business with Canadian hydro-powered smelters, and became a major lithium producer through the 2025 purchase of Arcadium Lithium. CEO Simon Trott is focused on productivity and capital discipline.",
+  segments:[["Iron ore",60],["Copper",25],["Aluminium & lithium",13],["Other",2]], segNote:"Approximate share of 2025 underlying EBITDA",
+  is:{rev:[44.61,63.50,55.55,54.04,53.66,57.64],ebitda:[23.9,37.7,26.3,23.9,23.3,25.4],ebit:[19.7,33.1,21.4,18.6,17.7,19.2],ni:[9.77,21.09,12.42,10.06,11.55,9.96],eps:[6.04,13.03,7.67,6.16,7.12,6.14],dps:[5.57,10.40,4.92,4.35,4.02,4.02],ie:[0.44,0.24,0.20,0.9,1.0,1.5],fcf:[9.4,17.7,9.0,7.7,6.0,5.5]},
+  bs:{ta:[97.39,102.9,96.74,103.55,102.79,128.10],te:[51.4,56.0,50.2,55.6,57.6,68.0],debt:[9.7,11.2,5.5,13.9,14.0,23.8],cash:[10.4,12.8,9.7,9.7,8.5,9.5]},
+  est:{ebit:[0,1,2,3,4,5],ie:[3,4,5],fcf:[5],te:[5],debt:[0,1,2,3,4,5],cash:[0,1,2,3,4,5],ni:[5]},
+  lbs:{date:"30 Jun 2026",ta:133.5,tl:null,te:71.7,debt:22.97,cash:8.91,nci:6.24,rows:[["Total assets","$133.5bn"],["Shareholders' equity (≈)","$71.7bn"],["Minority interests (≈)","$6.2bn"],["Cash & equivalents","$8.9bn"],["Net debt","$14.1bn"]]},
+  interim:{label:"Half-year to 30 Jun 2026",rows:[["Underlying EBITDA","$14.8bn","+28%"],["Net earnings","$6.7bn","+47%"],["Underlying earnings","$6.9bn","+43%"],["Operating cash flow","$9.2bn","+32%"],["Free cash flow","$3.8bn","+75%"],["Interim dividend","211c","1H25: 148c"]],src:"https://www.investegate.co.uk/announcement/rns/rio-tinto--rio/rio-tinto-2026-half-year-results/9692256"},
+  eps10:{start:2016,v:[2.56,4.90,8.02,4.93,6.04,13.03,7.67,6.16,7.12,6.14]},
+  brokers:{consensus:"Hold",n:null,buy:null,hold:null,sell:null,avg:7707,low:6100,high:8600,asOf:"30 Jul 2026",src:"MarketBeat (London line)",u:"https://www.marketbeat.com/instant-alerts/rio-tinto-group-lonrio-earns-hold-rating-from-deutsche-bank-aktiengesellschaft-2026-07-30/",
+    calls:[["Berenberg","Upgrade to Buy","8,600p","30 Jul 2026"],["Deutsche Bank","Hold","7,400p","30 Jul 2026"],["Citigroup","Neutral","8,250p","Jul 2026"],["RBC","Underperform","6,100p","Jul 2026"]],
+    note:"The low and high in the bar are the range of the individual calls listed here, not the full consensus range. The NYSE line averages $101.75 across 5 analysts (Hold)."},
+  news:[
+    {d:"20 Oct 2026",tag:"Stock",h:"Rio Tinto among FTSE decliners as copper prices ease.",s:"Reuters via Investing.com",u:"https://au.investing.com/news/economy-news/ftse-100-slips-as-banks-weigh-defensive-stockslimit-decline-4700991"},
+    {d:"14 Oct 2026",tag:"Operations",h:"Q3 production: Simandou reaches about a 10Mtpa run-rate; iron ore sales +3% to 90.8Mt; copper flat at 205kt but Oyu Tolgoi +29% year to date; more than $2bn of capital released; guidance unchanged.",s:"SteelOrbis",u:"https://www.steelorbis.com/steel-news/latest-news/rio-tintos-iron-ore-sales-rise-in-q3-2026-as-simandou-ramp-up-advances-1483543.htm"},
+    {d:"30 Jul 2026",tag:"Brokers",h:"Berenberg upgrades to Buy and lifts its target to 8,600p.",s:"AskTraders",u:"https://www.asktraders.com/analysis/berenberg-upgrades-rio-tinto-shares-to-buy-lifts-target-to-8600p/"},
+    {d:"29 Jul 2026",tag:"Results",h:"H1 underlying EBITDA $14.8bn (+28%), net earnings $6.7bn (+47%), interim dividend up to 211c at a 50% payout.",s:"Investegate (RNS)",u:"https://www.investegate.co.uk/announcement/rns/rio-tinto--rio/rio-tinto-2026-half-year-results/9692256"},
+    {d:"Feb 2026",tag:"Results",h:"FY25 underlying earnings flat at $10.9bn, slightly below forecasts; full-year dividend held at 402c.",s:"AJ Bell",u:"https://www.ajbell.co.uk/news/articles/repeat-rio-tinto-maintains-full-year-dividend-annual-earnings-fall-7"}
+  ],
+  reports:[
+    {t:"2026 half year results (6-K)",d:"29 Jul 2026",u:"https://www.sec.gov/Archives/edgar/data/0000863064/000162828026050377/rio-20260630_d2.htm"},
+    {t:"Q3 2026 operations review",d:"14 Oct 2026",u:"https://www.sec.gov/Archives/edgar/data/0000863064/000086306426000041/ex1prodresults.htm"},
+    {t:"Annual Report 2025 (PDF)",d:"Feb 2026",u:"https://www.sec.gov/Archives/edgar/data/863064/000162828026009503/a2025annualreport-glossy.pdf"},
+    {t:"Form 20-F 2025",d:"Feb 2026",u:"https://www.sec.gov/Archives/edgar/data/863064/000162828026009531/rio-20251231.htm"}
+  ],
+  next:"Q4 production review: expected mid Jan 2027"
+},
+{
+  id:"RR", name:"Rolls-Royce Holdings", ticker:"RR.", exch:"LSE", mkt:"UK", sector:"Aerospace & defence",
+  tradeCcy:"GBP", repCcy:"GBP", price:1331.6, priceDate:"19 Oct 2026", shares:8.25,
+  years:["2020","2021","2022","2023","2024","2025"], fyNote:"Year to 31 December. Underlying (non-statutory) revenue and operating profit; net income and EPS are underlying after tax.",
+  desc:"Engineering group best known for the Trent family of widebody jet engines (A350, 787, A330neo), which earn most of their value from long-term service agreements paid per engine flying hour. Defence makes engines for military aircraft and the nuclear reactors for UK submarines. Power Systems (mtu) sells engines and generators for data centres, marine and industrial uses. New Markets includes small modular reactors (SMRs), chosen for the UK programme and ordered in Sweden. CEO Tufan Erginbilgiç's turnaround since 2023 has lifted margins from about 5% to more than 20%.",
+  segments:[["Civil Aerospace",57],["Defence",25],["Power Systems",18]], segNote:"Approximate share of 2025 underlying revenue",
+  is:{rev:[11.49,10.95,12.69,15.41,17.85,20.06],ebitda:[-1.0,1.4,1.65,2.6,3.4,4.45],ebit:[-2.01,0.41,0.65,1.59,2.46,3.46],ni:[-3.4,0.12,0.12,1.06,1.7,2.5],eps:[-0.40,0.015,0.014,0.126,0.20,0.297],dps:[0,0,0,0,0.06,0.095],ie:[0.37,0.50,0.53,0.47,0.42,0.35],fcf:[-4.25,-1.48,0.51,1.29,2.43,3.27]},
+  bs:{ta:[33.9,32.0,33.6,32.5,35.0,38.5],te:[-3.5,-4.6,-6.6,-5.4,-2.6,0.6],debt:[7.0,7.8,6.9,5.8,5.3,4.6],cash:[3.4,2.6,3.6,3.8,5.8,6.5]},
+  est:{ebitda:[0,1,2,3,4,5],ni:[0,1,2,3,4,5],eps:[0,1,2,3,4,5],ie:[0,1,2,3,4,5],ta:[0,1,2,3,4,5],te:[0,1,2,3,4,5],debt:[0,1,2,3,4,5],cash:[0,1,2,3,4,5]},
+  lbs:{date:"30 Jun 2026",ta:39.0,tl:36.12,te:2.88,debt:4.36,cash:6.5,rows:[["Total assets (≈)","£39.0bn"],["Shareholders' equity (≈)","£2.9bn"],["Cash & equivalents","£6.5bn"],["Net cash","£2.1bn"],["Liquidity","£9.0bn"]]},
+  interim:{label:"Half-year to 30 Jun 2026",rows:[["Underlying revenue","£11.3bn","+25%"],["Underlying operating profit","£2.5bn","+46%"],["Underlying operating margin","22.5%",""],["Free cash flow","£1.96bn","1H25: £1.58bn"],["Interim dividend","6.0p",""],["FY26 guidance (raised)","Op. profit £4.7–4.9bn; FCF £3.8–4.0bn","from £4.0–4.2bn / £3.6–3.8bn"]],src:"https://www.rolls-royce.com/investors/results-reports-and-presentations/financial-results/rr-holdings-plc-2026-half-year-results.aspx"},
+  eps10:null, capeNote:"N/M: losses in 2020 and a 2020 rights issue make a 10-year average misleading",
+  brokers:{consensus:"Buy",n:20,buy:null,hold:null,sell:null,avg:1551,low:1101,high:1900,asOf:"3 Aug 2026",src:"S&P Global via StockAnalysis",u:"https://stockanalysis.com/quote/lon/rr/forecast/",
+    calls:[["JPMorgan","Overweight","1,800p","4 Aug 2026"],["Deutsche Bank","Buy","1,705p","5 Aug 2026"],["RBC","Outperform","1,600p","31 Jul 2026"]],
+    note:"Investing.com's 20-analyst average was £16.27 (range £11.01–£19.00, 7 Aug); MarketBeat's 7-broker average was £14.47 (27 Jul)."},
+  news:[
+    {d:"12 Oct 2026",tag:"Stock",h:"Shares flat in early trading; P/E about 32x.",s:"Market coverage",u:"https://www.vermoegenszentrum.ch/en/stock-exchange-and-markets/news/rolls-royce-posts-transcript-2026-half-year-results-briefing"},
+    {d:"1 Oct 2026",tag:"Contracts",h:"Licensing agreement for local production of high-speed engines in Saudi Arabia.",s:"Rolls-Royce press releases",u:"https://www.rolls-royce.com/media/press-releases.aspx"},
+    {d:"29 Sep 2026",tag:"Operations",h:"First flight of the Airbus A350F freighter powered by Trent XWB-97 engines.",s:"Rolls-Royce press releases",u:"https://www.rolls-royce.com/media/press-releases.aspx"},
+    {d:"2026",tag:"SMR",h:"Great British Energy–Nuclear technical partner contract: stage 1 worth an expected £359m. Shares dipped because expectations were already high.",s:"Börse Express",u:"https://www.boerse-express.com/news/articles/rolls-royce-aktie-359-millionen-fuer-smr-auftrag-905503"},
+    {d:"30 Jul 2026",tag:"Results",h:"H1 underlying operating profit up 46% to £2.5bn at a 22.5% margin. FY26 profit guidance raised to £4.7–4.9bn; £1.4bn of the £2.5bn 2026 buyback done.",s:"Rolls-Royce",u:"https://www.rolls-royce.com/media/press-releases/2026/30-07-2026-rr-holdings-plc-2026-half-year-results.aspx"},
+    {d:"26 Feb 2026",tag:"Results",h:"FY25 underlying operating profit £3.46bn (17.3% margin), FCF £3.27bn, 2025 dividend 9.5p. Mid-term targets raised; £7–9bn buyback planned for 2026–28.",s:"Rolls-Royce",u:"https://www.rolls-royce.com/media/press-releases/2026/26-02-2026-rr-holdings-plc-2025-full-year-results.aspx"}
+  ],
+  reports:[
+    {t:"2026 Half Year Results",d:"30 Jul 2026",u:"https://www.rolls-royce.com/investors/results-reports-and-presentations/financial-results/rr-holdings-plc-2026-half-year-results.aspx"},
+    {t:"2026 Half Year press release (PDF)",d:"30 Jul 2026",u:"https://www.rolls-royce.com/~/media/Files/R/Rolls-Royce/documents/investors/rr-holdings-plc-2026-half-year-results-press-release.pdf"},
+    {t:"2025 Full Year Results & Annual Report",d:"26 Feb 2026",u:"https://www.rolls-royce.com/investors/results-reports-and-presentations/financial-results/rr-holdings-plc-2025-full-year-results.aspx"}
+  ],
+  next:"Q3 trading update: expected Nov 2026"
+},
+/* ===================== US ===================== */
+{
+  id:"NVDA", name:"NVIDIA", ticker:"NVDA", exch:"NASDAQ", mkt:"US", sector:"Semiconductors",
+  tradeCcy:"USD", repCcy:"USD", price:214.13, priceDate:"16 Oct 2026", shares:24.3,
+  years:["FY21","FY22","FY23","FY24","FY25","FY26"], fyNote:"Fiscal years end in late January (FY26 ended 25 Jan 2026). Per-share figures adjusted for the 2021 4:1 and 2024 10:1 splits.",
+  desc:"Designer of the GPUs, networking and software (CUDA) that underpin most AI model training and inference. Data Center (Blackwell and Rubin systems, NVLink, InfiniBand and Spectrum-X networking, and the new Vera CPU) now produces about 90% of revenue, sold to hyperscalers, AI labs, sovereign buyers and enterprises. Gaming (GeForce GPUs, GeForce NOW), Professional Visualization and Automotive/robotics make up the rest. Manufacturing is outsourced, mainly to TSMC. Export controls have largely shut it out of China's data-centre market.",
+  segments:[["Data Center",90],["Gaming",7],["Pro Visualization, Automotive & other",3]], segNote:"Approximate share of FY26 revenue",
+  is:{rev:[16.68,26.91,26.97,60.92,130.50,215.94],ebitda:[5.63,11.21,5.76,34.48,83.31,133.0],ebit:[4.53,10.04,4.22,32.97,81.45,130.39],ni:[4.33,9.75,4.37,29.76,72.88,120.07],eps:[0.17,0.39,0.17,1.19,2.94,4.90],dps:[0.016,0.016,0.016,0.016,0.034,0.04],ie:[0.18,0.24,0.26,0.26,0.25,0.26],fcf:[4.69,8.13,3.81,27.02,60.85,96.6]},
+  bs:{ta:[28.79,44.19,41.18,65.73,111.60,206.80],te:[16.89,26.61,22.10,42.98,79.33,157.29],debt:[6.96,10.95,10.95,9.71,8.46,8.47],cash:[11.56,21.21,13.30,25.98,43.21,60.6]},
+  est:{ebitda:[5],cash:[5]},
+  lbs:{date:"26 Jul 2026",ta:320.27,tl:91.29,te:228.98,debt:33.37,cash:56.59,rows:[["Total assets","$320.3bn"],["Total liabilities","$91.3bn"],["Shareholders' equity","$229.0bn"],["Cash + marketable debt securities","$56.6bn"],["Marketable equity securities","$42.8bn"],["Total debt","$33.4bn"]]},
+  interim:{label:"Q2 FY27 (quarter to 26 Jul 2026)",rows:[["Revenue","$96.2bn","+106%"],["Data Center revenue","$89.0bn","+117%"],["Gross margin (GAAP)","75.0%",""],["Diluted EPS (GAAP)","$2.46",""],["Q3 FY27 revenue guidance","$108bn ±2%","no China DC compute"]],src:"https://www.sec.gov/Archives/edgar/data/0001045810/000104581026000073/q2fy27pr.htm"},
+  eps10:{start:2016,v:[0.064,0.120,0.166,0.113,0.17,0.39,0.17,1.19,2.94,4.90]},
+  brokers:{consensus:"Strong Buy",n:77,buy:60,hold:14,sell:3,avg:null,low:250,high:352,asOf:"28 Jul 2026",src:"FN2 analyst tracker",u:"https://fn2.ai/earnings/nvda/analysts",
+    calls:[["Evercore ISI","Outperform","$352","2026"],["Jefferies","Buy","$275","Jan 2026"],["JPMorgan","Overweight","$265","2026"],["Goldman Sachs","Buy","$250","2026"]],
+    note:"I didn't find a reliable current average target, so the bar shows the range of the individual calls listed here. The ratings split is the most recent available (July)."},
+  news:[
+    {d:"~19 Nov 2026",tag:"Upcoming",h:"Q3 FY27 results expected in the second half of November.",s:"Company calendar",u:"https://investor.nvidia.com"},
+    {d:"16 Oct 2026",tag:"Stock",h:"Falls 1.4% to $214.13 as AI stocks lead the Nasdaq lower.",s:"Gotrade",u:"https://www.heygotrade.com/en/news/nvidia-nvda-stock-news-october-19-2026/"},
+    {d:"Oct 2026",tag:"Product",h:"First RTX Spark devices begin shipping from OEMs, in two configurations.",s:"Windows Central",u:"https://www.windowscentral.com/tag/nvidia/page/3"},
+    {d:"26 Aug 2026",tag:"Results",h:"Q2 FY27 revenue $96.2bn (+106%), Data Center $89.0bn; Q3 guide $108bn assumes no China data-centre compute. From FY27, non-GAAP measures include stock-based compensation.",s:"NVIDIA (8-K)",u:"https://www.sec.gov/Archives/edgar/data/0001045810/000104581026000073/q2fy27cfocommentary.htm"},
+    {d:"May 2026",tag:"Results",h:"Q1 FY27 revenue $81.6bn; management targets about $20bn of Vera CPU revenue in 2026.",s:"AF.NET",u:"https://af.net/cn/realtime/nvidia-earnings-spotlight-20-billion-cpu-sales-target-in-2026-concession-to-huawei-and-reporting-overhaul/"},
+    {d:"25 Feb 2026",tag:"Results",h:"FY26 revenue a record $215.9bn (+65%), net income $120.1bn, FCF $96.6bn.",s:"NVIDIA",u:"https://nvidianews.nvidia.com/news/nvidia-announces-financial-results-for-fourth-quarter-and-fiscal-2026"}
+  ],
+  reports:[
+    {t:"Form 10-Q, Q2 FY27",d:"Aug 2026",u:"https://www.sec.gov/Archives/edgar/data/0001045810/000104581026000075/nvda-20260726.htm"},
+    {t:"Q2 FY27 press release",d:"26 Aug 2026",u:"https://www.sec.gov/Archives/edgar/data/0001045810/000104581026000073/q2fy27pr.htm"},
+    {t:"Annual Report FY2026 (PDF)",d:"2026",u:"https://www.sec.gov/Archives/edgar/data/0001045810/000104581026000038/a2026-annualxreportxwebxfi.pdf"},
+    {t:"Q4 & FY26 results",d:"25 Feb 2026",u:"https://nvidianews.nvidia.com/news/nvidia-announces-financial-results-for-fourth-quarter-and-fiscal-2026"}
+  ],
+  next:"Q3 FY27 results: expected ~19 Nov 2026"
+},
+{
+  id:"AAPL", name:"Apple", ticker:"AAPL", exch:"NASDAQ", mkt:"US", sector:"Consumer technology",
+  tradeCcy:"USD", repCcy:"USD", price:343.46, priceDate:"16 Oct 2026", shares:14.7,
+  years:["FY20","FY21","FY22","FY23","FY24","FY25"], fyNote:"Fiscal years end in late September (FY25 ended 27 Sep 2025). Apple stopped disclosing interest expense separately after FY23.",
+  desc:"Designs and sells the iPhone, which brings in about half of revenue, plus Mac, iPad and wearables (Apple Watch, AirPods, Vision Pro). An installed base of more than 2.3bn active devices feeds a high-margin Services business (App Store, iCloud, Apple Music and TV+, AppleCare, payments and the Google search default payments). Services is now about a quarter of revenue and over 40% of gross profit. The 2026 line-up, the first launched under a new CEO, adds the foldable iPhone Duo ($1,999) alongside the iPhone 18 Pro. Apple has a large buyback programme and keeps net cash close to neutral.",
+  segments:[["iPhone",50],["Services",26],["Wearables, Home & Accessories",9],["Mac",8],["iPad",7]], segNote:"Approximate share of FY25 revenue",
+  is:{rev:[274.52,365.82,394.33,383.29,391.04,416.16],ebitda:[77.35,120.23,130.54,125.82,134.67,144.75],ebit:[66.29,108.95,119.44,114.30,123.22,133.05],ni:[57.41,94.68,99.80,97.00,93.74,112.01],eps:[3.28,5.61,6.11,6.13,6.08,7.46],dps:[0.795,0.85,0.90,0.94,0.98,1.02],ie:[2.87,2.65,2.93,3.93,null,null],fcf:[73.37,92.95,111.44,99.58,108.81,98.77]},
+  bs:{ta:[323.89,351.00,352.76,352.58,364.98,359.24],te:[65.34,63.09,50.67,62.15,56.95,73.73],debt:[112.4,124.7,120.1,111.1,106.6,98.7],cash:[191.8,190.5,169.1,162.1,156.7,132.4]},
+  est:{},
+  lbs:{date:"27 Jun 2026",ta:383.27,tl:275.75,te:107.52,debt:93.3,cash:146.52,rows:[["Total assets","$383.3bn"],["Total liabilities","$275.7bn"],["Shareholders' equity","$107.5bn"],["Cash + marketable securities","$146.5bn"],["Term debt (≈)","$93.3bn"]]},
+  interim:{label:"Q3 FY26 (quarter to 27 Jun 2026)",rows:[["Revenue","$109.4bn","+16%"],["iPhone","$54.3bn","+22%"],["Services","$30.7bn","+12% (below forecasts)"],["Mac","$10.4bn","+29%"],["Net income","$29.8bn","+27%"],["Diluted EPS","$2.02","+29% (incl. $0.11 tariff refunds)"]],src:"https://www.sec.gov/Archives/edgar/data/0000320193/000032019326000018/a8-kex991q3202606272026.htm"},
+  eps10:{start:2016,v:[2.08,2.30,2.98,2.97,3.28,5.61,6.11,6.13,6.08,7.46]},
+  brokers:{consensus:"Moderate Buy",n:39,buy:24,hold:16,sell:2,avg:330.53,low:200,high:400,asOf:"24 Aug 2026",src:"MarketBeat (split from Barchart's 42-analyst count)",u:"https://www.marketbeat.com/stocks/NASDAQ/AAPL/Forecast/",
+    calls:[["Benzinga consensus (29 analysts)","Buy","$334","Aug 2026"]],
+    note:"The ratings split comes from Barchart's 42-analyst count (24 Buy, 16 Hold, 2 Sell). The average target is MarketBeat's 39-analyst figure."},
+  news:[
+    {d:"~29 Oct 2026",tag:"Upcoming",h:"Q4 FY26 results expected around the end of October.",s:"Company calendar",u:"https://investor.apple.com"},
+    {d:"23 Oct 2026",tag:"Product",h:"iPhone Duo goes on sale in stores (256GB to 2TB, from $1,999).",s:"days.to",u:"https://days.to/when-is/iphone-duo"},
+    {d:"16 Oct 2026",tag:"Product",h:"iPhone Duo preorders sell out within minutes; shares +0.4% to $343.46 on a down day for tech.",s:"Market coverage",u:"https://www.heygotrade.com/en/news/google-googl-stock-news-october-19-2026/"},
+    {d:"Oct 2026",tag:"Industry",h:"Counterpoint forecasts about 6m iPhone Duo units in 2026, limited by component supply. Foldables are still under 5% of the smartphone market.",s:"TelecomTalk",u:"https://telecomtalk.info/iphone-duo-apple-to-sell-6-million-units-in-2026/1012340/"},
+    {d:"9 Sep 2026",tag:"Product",h:"Launch event: first foldable iPhone, iPhone 18 Pro line-up and new watches.",s:"Fox Business",u:"https://www.foxbusiness.com/technology/apple-unveils-first-foldable-iphone-iphone-18-pro-lineup-new-watches-annual-launch-event"},
+    {d:"30 Jul 2026",tag:"Results",h:"Record Q3 revenue of $109.4bn (+16%), EPS $2.02, but a Services miss and margin guidance sent shares down about 7%.",s:"Dataporium",u:"https://dataporium.tech/articles/apple-fiscal-q3-2026-earnings-record-109-4-billion-quarter-yet-the-stock-fell-7"}
+  ],
+  reports:[
+    {t:"Form 10-Q, Q3 FY26 (PDF)",d:"Jul 2026",u:"https://s2.q4cdn.com/470004039/files/doc_earnings/2026/q3/filing/10Q-Q3-2026-as-filed.pdf"},
+    {t:"Q3 FY26 earnings release (8-K)",d:"30 Jul 2026",u:"https://www.sec.gov/Archives/edgar/data/0000320193/000032019326000018/a8-kex991q3202606272026.htm"},
+    {t:"Investor relations (10-K FY25)",d:"Annual report & 10-K",u:"https://investor.apple.com/sec-filings/default.aspx"}
+  ],
+  next:"Q4 FY26 results: expected ~29 Oct 2026"
+},
+{
+  id:"GOOGL", name:"Alphabet", ticker:"GOOGL", exch:"NASDAQ", mkt:"US", sector:"Internet & cloud",
+  tradeCcy:"USD", repCcy:"USD", price:340.59, priceDate:"16 Oct 2026", shares:12.1,
+  years:["2020","2021","2022","2023","2024","2025"], fyNote:"Year to 31 December. Per-share figures adjusted for the 2022 20:1 split. Net income includes large unrealised gains on equity stakes.",
+  desc:"Parent of Google. Google Services (Search and AI Overviews, YouTube, Android, Chrome, Maps, Play and subscriptions) earns most of the profit through advertising. Google Cloud (GCP infrastructure, TPUs, Gemini models and Workspace) is the fastest-growing segment: up 82% in Q2 2026, with a backlog reported above $460bn. Other Bets includes Waymo robotaxis. 2026 capex guidance of $195–205bn is mostly AI infrastructure. US antitrust remedies in the search case ban exclusive distribution deals and require data sharing; the ad-tech case continues.",
+  segments:[["Search & other",55],["Google Cloud",15],["Subscriptions, platforms & devices",11],["YouTube ads",10],["Network ads",7],["Other Bets & hedging",2]], segNote:"Approximate share of 2025 revenue",
+  is:{rev:[182.53,257.64,282.84,307.39,350.02,402.84],ebitda:[54.9,91.2,90.8,96.2,127.7,150.0],ebit:[41.22,78.71,74.84,84.29,112.39,129.0],ni:[40.27,76.03,59.97,73.80,100.12,132.17],eps:[2.93,5.61,4.56,5.80,8.04,10.81],dps:[0,0,0,0,0.60,0.83],ie:[0.135,0.346,0.357,0.308,0.268,0.6],fcf:[42.84,67.01,60.01,69.50,72.76,73.3]},
+  bs:{ta:[319.6,359.3,365.3,402.4,450.3,595.0],te:[222.5,251.6,256.1,283.4,325.1,415.0],debt:[13.9,14.8,14.7,13.3,10.9,46.5],cash:[136.7,139.6,113.8,110.9,95.7,126.8]},
+  est:{ebitda:[5],ebit:[5],ie:[5],ta:[5],te:[5],debt:[5],cash:[5]},
+  lbs:{date:"30 Jun 2026",ta:921.98,tl:281.5,te:640.48,debt:98.17,cash:242.47,rows:[["Total assets","$922.0bn"],["Stockholders' equity","$640.5bn"],["Cash + marketable securities","$242.5bn"],["Long-term debt","$98.2bn"]]},
+  interim:{label:"Q2 2026 (quarter to 30 Jun)",rows:[["Revenue","$119.8bn","+24%"],["Google Cloud revenue","$24.8bn","+82%"],["Operating income","$40.8bn","+30% (34.0% margin)"],["Net income","$112.1bn","incl. $98bn equity gains"],["Diluted EPS","$9.11",""],["Capex","$44.9bn","~2x; FY guide $195–205bn"]],src:"https://www.sec.gov/Archives/edgar/data/0001652044/000165204426000066/googexhibit991q22026.htm"},
+  eps10:{start:2016,v:[0.96,0.46,2.12,2.46,2.93,5.61,4.56,5.80,8.04,10.81]},
+  brokers:{consensus:"Strong Buy",n:54,buy:50,hold:4,sell:0,avg:429.46,low:340,high:515,asOf:"26 Sep 2026",src:"Bullstory (split from MarketBeat, 3 Aug)",u:"https://bullstory.io/en/stocks/googl/forecast/price-target",
+    calls:[["MarketBeat consensus","Buy","$419.86","3 Aug 2026"],["TipRanks consensus","—","$390.80","31 Jul 2026"]],
+    note:"The ratings split is MarketBeat's 3 Aug count: 44 Buy, 6 Strong Buy, 4 Hold."},
+  news:[
+    {d:"~28 Oct 2026",tag:"Upcoming",h:"Q3 2026 results expected late October.",s:"Company calendar",u:"https://abc.xyz/investor/"},
+    {d:"16 Oct 2026",tag:"Stock",h:"Falls 2.5% to $340.59 in the AI-led tech sell-off.",s:"Gotrade",u:"https://www.heygotrade.com/en/news/google-googl-stock-news-october-19-2026/"},
+    {d:"2026",tag:"Regulation",h:"Judge declines to force a sale of the AdX exchange and opts for behavioural remedies: exclusive distribution deals for Chrome, Search and Gemini are banned, and search data must be shared with rivals. An appeal is expected.",s:"TIKR",u:"https://www.tikr.com/blog/google-stock-rallies-gemini-ai-antitrust-ruling"},
+    {d:"22 Jul 2026",tag:"Results",h:"Q2 revenue +24% to $119.8bn and Cloud +82%, but the shares fell after 2026 capex guidance was raised to $195–205bn.",s:"CNBC",u:"https://www.cnbc.com/2026/07/22/google-earnings-q2-goog-live-updates.html"},
+    {d:"Jul 2026",tag:"Industry",h:"Search ads grew 17% in the AI Overviews era, easing fears that generative AI would erode search revenue.",s:"Digital Applied",u:"https://www.digitalapplied.com/blog/alphabet-q2-2026-earnings-search-ads-ai-overviews"}
+  ],
+  reports:[
+    {t:"Form 10-Q, Q2 2026",d:"Jul 2026",u:"https://www.sec.gov/Archives/edgar/data/0001652044/000165204426000071/goog-20260630.htm"},
+    {t:"Q2 2026 earnings release (8-K)",d:"22 Jul 2026",u:"https://www.sec.gov/Archives/edgar/data/0001652044/000165204426000066/googexhibit991q22026.htm"},
+    {t:"Q4 & FY2025 earnings release",d:"Feb 2026",u:"https://www.sec.gov/Archives/edgar/data/1652044/000165204426000012/googexhibit991q42025.htm"},
+    {t:"Investor relations (10-K 2025)",d:"Annual report & 10-K",u:"https://abc.xyz/investor/"}
+  ],
+  next:"Q3 2026 results: expected late Oct 2026"
+},
+{
+  id:"MSFT", name:"Microsoft", ticker:"MSFT", exch:"NASDAQ", mkt:"US", sector:"Software & cloud",
+  tradeCcy:"USD", repCcy:"USD", price:529.05, priceDate:"16 Oct 2026", shares:7.43,
+  years:["FY21","FY22","FY23","FY24","FY25","FY26"], fyNote:"Fiscal years end 30 June (FY26 ended 30 Jun 2026). FY26 net income includes about $5bn of OpenAI-related gains.",
+  desc:"The largest enterprise software company. Intelligent Cloud (Azure, which passed $100bn of annual revenue in FY26 and grew 41%, plus SQL Server, Windows Server and GitHub) is the main growth driver. Productivity & Business Processes covers Microsoft 365 commercial and consumer, Copilot, LinkedIn and Dynamics. More Personal Computing includes Windows, devices, Xbox/Activision Blizzard gaming and Bing search advertising. A revised OpenAI agreement in April 2026 changed revenue-sharing terms; Microsoft keeps a large equity stake in OpenAI.",
+  segments:[["Intelligent Cloud",42],["Productivity & Business Processes",37],["More Personal Computing",21]], segNote:"Approximate share of FY26 revenue",
+  is:{rev:[168.09,198.27,211.92,245.12,281.72,331.8],ebitda:[81.6,97.8,102.4,131.7,162.7,203.2],ebit:[69.92,83.38,88.52,109.43,128.53,155.2],ni:[61.27,72.74,72.36,88.14,101.83,133.7],eps:[8.05,9.65,9.68,11.80,13.64,17.95],dps:[2.24,2.48,2.72,3.00,3.32,3.64],ie:[2.35,2.06,1.97,2.94,2.39,2.2],fcf:[56.12,65.15,59.48,74.07,71.61,70.0]},
+  bs:{ta:[333.78,364.84,411.98,512.16,619.00,758.38],te:[141.99,166.54,206.22,268.48,343.48,442.39],debt:[58.1,49.75,47.24,44.94,43.15,40.3],cash:[130.3,104.8,111.3,75.5,94.6,76.8]},
+  est:{ebitda:[5],ie:[5],fcf:[5]},
+  lbs:{date:"30 Jun 2026",ta:758.38,tl:315.99,te:442.39,debt:40.3,cash:76.8,rows:[["Total assets","$758.4bn"],["Total liabilities","$316.0bn"],["Stockholders' equity","$442.4bn"],["Cash + short-term investments","$76.8bn"],["Debt (short + long term)","$40.3bn"]]},
+  interim:{label:"Q4 FY26 (quarter to 30 Jun 2026)",rows:[["Revenue","$90.0bn","+18%"],["Operating income","$40.6bn",""],["Net income (GAAP)","$35.8bn",""],["FY26 Azure revenue",">$100bn","+41%"],["FY26 Microsoft Cloud revenue",">$214bn",""]],src:"https://news.microsoft.com/source/2026/07/29/microsoft-cloud-and-ai-strength-fuels-fourth-quarter-results-4/"},
+  eps10:{start:2017,v:[2.71,2.13,5.06,5.76,8.05,9.65,9.68,11.80,13.64,17.95]},
+  brokers:{consensus:"Outperform",n:32,buy:30,hold:2,sell:0,avg:555,low:586,high:690,asOf:"11 Aug 2026",src:"Benzinga",u:"https://kr.benzinga.com/quote/MSFT/price-targets",
+    calls:[["Tigress Financial","Buy","$690","5 Aug 2026"],["Morgan Stanley","Overweight","$600","Aug 2026"],["Guggenheim","Buy","$586","Aug 2026"]],
+    note:"Ratings: 1 Strong Buy, 29 Buy, 2 Hold. The bar's low and high are the range of the individual calls listed here; the Benzinga average of $555 sits below them because older, lower targets are still in the average."},
+  news:[
+    {d:"~28 Oct 2026",tag:"Upcoming",h:"Q1 FY27 results expected late October.",s:"Company calendar",u:"https://www.microsoft.com/en-us/investor"},
+    {d:"16 Oct 2026",tag:"Stock",h:"Falls 1.9% to $529.05 as AI software valuations reverse.",s:"Gotrade",u:"https://www.heygotrade.com/en/news/microsoft-msft-stock-news-october-19-2026/"},
+    {d:"29 Jul 2026",tag:"Results",h:"FY26 revenue $331.8bn (+18%), operating income $155.2bn (+21%); Azure passes $100bn (+41%).",s:"Microsoft",u:"https://news.microsoft.com/source/2026/07/29/microsoft-cloud-and-ai-strength-fuels-fourth-quarter-results-4/"},
+    {d:"Apr 2026",tag:"Strategy",h:"Revised OpenAI agreement reportedly ends Microsoft's 20% revenue-share payments on Azure OpenAI Service and Bing, supporting gross margin.",s:"Market coverage",u:"https://startupmap.iamsterdam.com/news/feed/microsoft-down-22-ytd-as-investors-weigh-openai-agreement-changes-and-azure-growth"},
+    {d:"Jan 2026",tag:"Stock",h:"Shares fell 10% after Q2 FY26 results, the worst day since March 2020, on capex and Azure capacity concerns.",s:"SAMexpert",u:"https://samexpert.com/microsoft-q2-fy2026-earnings-licensing-impact/"}
+  ],
+  reports:[
+    {t:"Form 10-K FY2026",d:"Jul 2026",u:"https://www.sec.gov/Archives/edgar/data/0000789019/000119312526323660/msft-20260630.htm"},
+    {t:"Q4 FY26 earnings release (8-K)",d:"29 Jul 2026",u:"https://www.sec.gov/Archives/edgar/data/0000789019/000119312526323632/msft-ex99_1.htm"},
+    {t:"FY26 Q4 earnings call",d:"29 Jul 2026",u:"https://www.microsoft.com/en-us/investor/events/fy-2026/earnings-fy-2026-q4"}
+  ],
+  next:"Q1 FY27 results: expected late Oct 2026"
+},
+{
+  id:"AMZN", name:"Amazon", ticker:"AMZN", exch:"NASDAQ", mkt:"US", sector:"E-commerce & cloud",
+  tradeCcy:"USD", repCcy:"USD", price:250.00, priceDate:"16 Oct 2026", shares:10.75,
+  years:["2020","2021","2022","2023","2024","2025"], fyNote:"Year to 31 December. Per-share figures adjusted for the 2022 20:1 split. Debt excludes lease liabilities (about $94bn long-term at Jun 2026). Q2 2026 net income includes a $53bn gain, mainly on its Anthropic stake.",
+  desc:"Global online retailer and the largest cloud provider. North America and International retail (first-party sales, third-party seller services, Prime subscriptions, Whole Foods) produce most of the revenue but thin margins. Amazon Web Services (about 18% of revenue but most of operating profit) grew 37% in Q2 2026, its fastest since 2021, helped by AI demand and its Trainium chips. Advertising (more than $60bn a year) is the third profit engine. Amazon has invested heavily in Anthropic, which has committed over $100bn of AWS spending. Capex is running above $200bn a year.",
+  segments:[["Online stores",38],["Third-party seller services",24],["AWS",18],["Advertising",9],["Subscriptions",7],["Physical stores & other",4]], segNote:"Approximate share of 2025 net sales",
+  is:{rev:[386.06,469.82,513.98,574.79,637.96,716.92],ebitda:[48.15,59.31,54.17,85.51,121.39,145.0],ebit:[22.90,24.88,12.25,36.85,68.59,80.0],ni:[21.33,33.36,-2.72,30.43,59.25,77.7],eps:[2.09,3.24,-0.27,2.90,5.53,7.17],dps:[0,0,0,0,0,0],ie:[1.65,1.81,2.37,3.18,2.41,2.2],fcf:[25.92,-14.73,-16.89,32.22,32.88,11.2]},
+  bs:{ta:[321.2,420.5,462.7,527.9,624.9,818.0],te:[93.4,138.2,146.0,201.9,286.0,411.0],debt:[31.8,48.7,67.2,58.3,52.6,65.6],cash:[84.4,96.0,70.0,86.8,101.2,123.0]},
+  est:{ebitda:[5],ebit:[5],ie:[5],fcf:[5],ta:[5],te:[5],cash:[5]},
+  lbs:{date:"30 Jun 2026",ta:1095.69,tl:null,te:505,debt:128.9,cash:122.99,rows:[["Total assets","$1,095.7bn"],["Stockholders' equity (≈)","$505bn"],["Cash + marketable securities","$123.0bn"],["Long-term debt","$128.9bn"],["Long-term lease liabilities","$94.3bn"]]},
+  interim:{label:"Q2 2026 (quarter to 30 Jun)",rows:[["Net sales","$200.6bn","+20%"],["AWS sales","$42.2bn","+37%"],["Operating income","$27.5bn","Q2 25: $19.2bn"],["AWS operating income","$16.6bn","39.4% margin"],["Net income","$62.6bn","incl. $53.4bn other income"],["Capex","$54.2bn","+68%"]],src:"https://ir.aboutamazon.com/news-release/news-release-details/2026/Amazon-com-Announces-Second-Quarter-Results/"},
+  eps10:{start:2016,v:[0.24,0.31,1.01,1.15,2.09,3.24,-0.27,2.90,5.53,7.17]},
+  brokers:{consensus:"Moderate Buy",n:59,buy:57,hold:2,sell:0,avg:323.26,low:218,high:400,asOf:"4 Sep 2026",src:"MarketBeat",u:"https://www.marketbeat.com/stocks/NASDAQ/AMZN/Forecast/",
+    calls:[["KeyBanc","Overweight","$335","Jul 2026"],["Investing.com consensus (61)","Strong Buy","$319.90","31 Jul 2026"]],
+    note:""},
+  news:[
+    {d:"~29 Oct 2026",tag:"Upcoming",h:"Q3 2026 results expected late October.",s:"Company calendar",u:"https://ir.aboutamazon.com"},
+    {d:"16 Oct 2026",tag:"Stock",h:"Falls 1.9% to $250.00 in the tech sell-off.",s:"Market coverage",u:"https://www.heygotrade.com/en/news/google-googl-stock-news-october-19-2026/"},
+    {d:"30 Jul 2026",tag:"Results",h:"AWS grows 37%, its fastest since 2021, citing AI and chip demand. Net sales top $200bn.",s:"CNBC",u:"https://www.cnbc.com/2026/07/30/aws-earnings-q2-2026.html"},
+    {d:"30 Jul 2026",tag:"Results",h:"Net income $62.6bn including $53.4bn of non-operating gains, mainly on the Anthropic investment; capex $54.2bn (+68%).",s:"Stock Titan (8-K)",u:"https://www.stocktitan.net/sec-filings/AMZN/8-k-amazon-com-inc-reports-material-event-8458b0d43e1c.html"},
+    {d:"Apr 2026",tag:"Strategy",h:"Anthropic expands its partnership and reportedly commits more than $100bn to AWS over the next decade.",s:"Yahoo Finance",u:"https://finance.yahoo.com/news/what-wall-street-is-saying-about-amazons-deepening-ties-with-anthropic-141650676.html"}
+  ],
+  reports:[
+    {t:"Form 10-Q, Q2 2026",d:"Jul 2026",u:"https://www.sec.gov/Archives/edgar/data/0001018724/000101872426000026/amzn-20260630.htm"},
+    {t:"Q2 2026 results release",d:"30 Jul 2026",u:"https://ir.aboutamazon.com/news-release/news-release-details/2026/Amazon-com-Announces-Second-Quarter-Results/"},
+    {t:"Annual reports & 10-K",d:"Investor relations",u:"https://ir.aboutamazon.com/annual-reports-proxies-and-shareholder-letters/default.aspx"}
+  ],
+  next:"Q3 2026 results: expected late Oct 2026"
+}
+];
+
+/* ---------- State ---------- */
+const store = {
+  get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+};
+let FX = store.get("eqm-fx", DEFAULT_FX);
+let PX = store.get("eqm-px", {});
+let view = {mode:"company", id:"HSBA", tab:"overview"};
+let sort = {key:"mcapUSD", dir:-1};
+
+/* ---------- Helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const isNum = v => typeof v === "number" && isFinite(v);
+const sym = c => c === "GBP" ? "£" : "$";
+function fmtN(v,d=1){return isNum(v)?v.toLocaleString("en-GB",{minimumFractionDigits:d,maximumFractionDigits:d}):"—"}
+function pct(v,d=1){return isNum(v)?(v*100).toFixed(d)+"%":"—"}
+function mult(v,d=1){return isNum(v)&&v>0?v.toFixed(d)+"x":"—"}
+function money(v,ccy,d=1){if(!isNum(v))return "—";const s=v<0?"−":"";return s+sym(ccy)+Math.abs(v).toLocaleString("en-GB",{minimumFractionDigits:d,maximumFractionDigits:d})}
+function bn(v,ccy,d=1){return isNum(v)?money(v,ccy,d)+"bn":"—"}
+function pxFmt(c,v){return c.tradeCcy==="GBP"?fmtN(v,1)+"p":"$"+fmtN(v,2)}
+function price(c){const o=PX[c.id];return isNum(o)?o:c.price}
+function priceRep(c){const p=price(c);if(c.tradeCcy==="GBP"){const gbp=p/100;return c.repCcy==="USD"?gbp*FX:gbp}return p}
+function toUSD(v,c){return c.repCcy==="USD"?v:v*FX}
+function cagr(a,n){const L=a.length-1;if(L-n<0)return null;const x=a[L-n],y=a[L];if(!isNum(x)||!isNum(y)||x<=0||y<=0)return null;return Math.pow(y/x,1/n)-1}
+function lastNum(a){for(let i=a.length-1;i>=0;i--)if(isNum(a[i]))return {v:a[i],i};return null}
+function avgRatio(num,den,n){
+  const L=num.length-1;const out=[];
+  for(let t=L-n+1;t<=L;t++){
+    if(t<1)return null;
+    const d=(den[t]+den[t-1])/2;
+    if(!isNum(num[t])||!isNum(d)||d<=0)return null;
+    out.push(num[t]/d);
+  }
+  return out.reduce((a,b)=>a+b,0)/out.length;
+}
+
+/* ---------- Metric engine ---------- */
+function metrics(c){
+  const i=c.is,b=c.bs,L=i.rev.length-1,m={};
+  m.price=price(c);m.priceRep=priceRep(c);
+  m.mcapRep=m.priceRep*c.shares;
+  m.mcapUSD=toUSD(m.mcapRep,c);
+  m.mcapLocal=c.tradeCcy==="GBP"?(m.price/100)*c.shares:m.mcapRep;
+  m.pe=m.priceRep/i.eps[L];
+  m.dy=i.dps[L]/m.priceRep;
+  m.dg1=cagr(i.dps,1);m.dg3=cagr(i.dps,3);m.dg5=cagr(i.dps,5);
+  m.rg1=cagr(i.rev,1);m.rg3=cagr(i.rev,3);m.rg5=cagr(i.rev,5);
+  m.eg1=cagr(i.eps,1);m.eg3=cagr(i.eps,3);m.eg5=cagr(i.eps,5);
+  m.netM=i.ni[L]/i.rev[L];
+  m.roa1=avgRatio(i.ni,b.ta,1);m.roa3=avgRatio(i.ni,b.ta,3);m.roa5=avgRatio(i.ni,b.ta,5);
+  m.roe1=avgRatio(i.ni,b.te,1);m.roe3=avgRatio(i.ni,b.te,3);m.roe5=avgRatio(i.ni,b.te,5);
+  if(c.eps10){
+    const cpi=CPI[c.repCcy];let s=0;
+    c.eps10.v.forEach((e,k)=>{const y=c.eps10.start+k;s+=e*cpi.now/(cpi[y]||cpi.now)});
+    const avg=s/c.eps10.v.length;m.cape=avg>0?m.priceRep/avg:null;m.capeYears=c.eps10.v.length;
+  } else m.cape=null;
+  const tgt=c.brokers;
+  if(isNum(tgt.avg)){
+    const tLocal=tgt.tgtCcy==="USD"&&c.tradeCcy==="GBP"?tgt.avg/FX*100:tgt.avg;
+    m.tgtLocal=tLocal;m.upside=tLocal/m.price-1;
+  }
+  if(c.bank){
+    m.bank=true;m.rote=i.rote[L]/100;m.cet1=i.cet1[L]/100;
+    m.pb=c.lbs.bvps?m.priceRep/c.lbs.bvps:null;
+    return m;
+  }
+  const lb=c.lbs;
+  const debt=isNum(lb.debt)?lb.debt:b.debt[L];
+  const cash=isNum(lb.cash)?lb.cash:b.cash[L];
+  const nd=isNum(lb.nd)?lb.nd:debt-cash;
+  const te=isNum(lb.te)?lb.te:b.te[L];
+  m.debt=debt;m.cash=cash;m.nd=nd;m.teL=te;
+  m.ev=m.mcapRep+nd+(lb.nci||0);
+  m.evUSD=toUSD(m.ev,c);
+  m.ebitdaM=i.ebitda[L]/i.rev[L];m.opM=i.ebit[L]/i.rev[L];
+  m.evEbitda=m.ev/i.ebitda[L];m.evSales=m.ev/i.rev[L];
+  m.ndEbitda=nd/i.ebitda[L];
+  m.de=te>0?(isNum(lb.debt)?debt:(nd+cash))/te:null;
+  m.deNote=te<=0?"N/M (negative equity)":"";
+  const ie=lastNum(i.ie);m.intEbitda=ie?ie.v/i.ebitda[ie.i]:null;m.intYear=ie?c.years[ie.i]:"";
+  m.intCover=ie?i.ebit[ie.i]/ie.v:null;
+  m.fcfY=i.fcf[L]/m.mcapRep;
+  const ic=b.debt.map((d,k)=>d+b.te[k]);
+  const nopat=i.ebit.map(e=>e*0.75);
+  m.roic1=avgRatio(nopat,ic,1);m.roic3=avgRatio(nopat,ic,3);m.roic5=avgRatio(nopat,ic,5);
+  if(b.te.some(v=>v<=0)){m.roeNote="N/M while equity was negative; ROIC is also N/M because invested capital was distorted.";
+    if(b.te[L]<=0||b.te[L-1]<=0){m.roe1=null;m.roic1=null} if(b.te.slice(L-3).some(v=>v<=0)){m.roe3=null;m.roic3=null} m.roe5=null;m.roic5=null;}
+  return m;
+}
+
+/* ---------- Rail ---------- */
+function renderRail(){
+  ["UK","US"].forEach(mk=>{
+    const ul=$("#list"+mk);
+    const rows=COMPANIES.filter(c=>c.mkt===mk).map(c=>({c,m:metrics(c)})).sort((a,b)=>b.m.mcapUSD-a.m.mcapUSD);
+    ul.innerHTML=rows.map(({c,m})=>`<li><button class="co" data-id="${c.id}" aria-current="${view.mode==="company"&&view.id===c.id}">
+      <b>${esc(c.name)}</b><span class="px">${pxFmt(c,m.price)}</span>
+      <span class="tk">${esc(c.ticker)}</span><span class="mc">${mk==="UK"?"£"+fmtN(m.mcapLocal,0)+"bn":"$"+fmtN(m.mcapUSD/1000,2)+"tn"}</span></button></li>`).join("");
+  });
+  document.querySelectorAll(".co").forEach(b=>b.onclick=()=>openCompany(b.dataset.id));
+  $("#btnCompare").setAttribute("aria-pressed",view.mode==="compare");
+}
+
+/* ---------- Company view ---------- */
+const TABS=[["overview","Overview"],["pnl","P&L"],["bs","Balance sheet"],["metrics","Key metrics"],["brokers","Broker views"],["news","News"],["reports","Reports & accounts"]];
+function openCompany(id,tab){view={mode:"company",id,tab:tab||view.tab||"overview"};try{history.replaceState(null,"","#"+id)}catch(e){}render();window.scrollTo({top:0})}
+
+function tile(k,v,h){return `<div class="tile"><span class="k">${k}</span><span class="v">${v}</span>${h?`<span class="h">${h}</span>`:""}</div>`}
+function ratingPill(r){const s=(r||"").toLowerCase();const cls=/strong buy|buy|outperform|overweight/.test(s)&&!/under/.test(s)?"good":/sell|under/.test(s)?"bad":/hold|neutral|equal/.test(s)?"warn":"neutral";return `<span class="pill ${cls}">${esc(r)}</span>`}
+
+function renderCompany(){
+  const c=COMPANIES.find(x=>x.id===view.id)||COMPANIES[0];const m=metrics(c);
+  const loc=c.tradeCcy, rep=c.repCcy, overridden=isNum(PX[c.id]);
+  const capLine=c.tradeCcy==="GBP"?`£${fmtN(m.mcapLocal,1)}bn · $${fmtN(m.mcapUSD,1)}bn`:`$${fmtN(m.mcapUSD,1)}bn`;
+  $("#main").innerHTML=`<section class="panel">
+    <div class="chead">
+      <div class="ctop">
+        <div class="cname">
+          <div class="eyebrow"><span class="mk ${c.mkt.toLowerCase()}">${c.mkt==="UK"?"FTSE 100":"S&amp;P 500"}</span><span>${esc(c.exch)}: ${esc(c.ticker)}</span><span>·</span><span>${esc(c.sector)}</span></div>
+          <h2>${esc(c.name)}</h2>
+        </div>
+        <div class="quote">
+          <div><div class="big">${pxFmt(c,m.price)}</div><div class="sub">${overridden?"Your price (override)":"Close "+esc(c.priceDate)}</div></div>
+          <div><div class="num" style="font-size:16px">${capLine}</div><div class="sub">Market cap · ${fmtN(c.shares,2)}bn shares</div></div>
+          <div class="pxedit"><label for="pxin">Set price</label><input id="pxin" type="number" step="0.01" min="0" value="${m.price}">${overridden?`<button class="linkbtn" id="pxreset">Reset</button>`:""}</div>
+        </div>
+      </div>
+      <div class="tabs" role="tablist">${TABS.map(([k,l])=>`<button class="tab" role="tab" data-tab="${k}" aria-selected="${view.tab===k}">${l}</button>`).join("")}</div>
+    </div>
+    <div class="tabbody">${TAB_RENDER[view.tab](c,m)}</div>
+  </section>`;
+  document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{view.tab=t.dataset.tab;render()});
+  const inp=$("#pxin");inp.onchange=()=>{const v=parseFloat(inp.value);if(isNum(v)&&v>0){PX[c.id]=v;store.set("eqm-px",PX);render()}};
+  const rs=$("#pxreset");if(rs)rs.onclick=()=>{delete PX[c.id];store.set("eqm-px",PX);render()};
+}
+
+function snapshotTiles(c,m){
+  if(m.bank)return `<div class="tiles">
+    ${tile("P/E (FY)",mult(m.pe),c.years.at(-1))}${tile("CAPE",mult(m.cape),"10-yr real EPS")}${tile("Price / book",mult(m.pb,2),"≈ "+esc(c.lbs.date))}
+    ${tile("Dividend yield",pct(m.dy),"FY declared")}${tile("RoTE",pct(m.rote),c.years.at(-1)+" reported")}${tile("CET1 ratio",esc(c.lbs.rows[0][1]),esc(c.lbs.date))}
+    ${tile("ROE (1 yr)",pct(m.roe1))}${tile("Consensus",esc(c.brokers.consensus),isNum(m.upside)?`${m.upside>=0?"+":""}${pct(m.upside)} to target`:"")}</div>`;
+  return `<div class="tiles">
+    ${tile("EV",bn(m.ev,c.repCcy,0),"EV/EBITDA "+mult(m.evEbitda))}${tile("P/E (FY)",mult(m.pe),c.years.at(-1))}${tile("CAPE",mult(m.cape),m.cape?"10-yr real EPS":esc(c.capeNote?"N/M":""))}
+    ${tile("EBITDA margin",pct(m.ebitdaM))}${tile("Operating margin",pct(m.opM))}${tile("FCF yield",pct(m.fcfY))}
+    ${tile("Dividend yield",pct(m.dy,2))}${tile("Net debt / EBITDA",isNum(m.ndEbitda)?m.ndEbitda.toFixed(2)+"x":"—",m.nd<0?"net cash":"")}${tile("ROE (1 yr)",m.roe1==null?"N/M":pct(m.roe1))}
+    ${tile("Consensus",esc(c.brokers.consensus),isNum(m.upside)?`${m.upside>=0?"+":""}${pct(m.upside)} to avg target`:"")}</div>`;
+}
+
+const TAB_RENDER={
+overview(c,m){
+  return `<div class="grid2">
+    <div><h3>What the company does</h3><p class="lede">${esc(c.desc)}</p></div>
+    <div><h4>Business mix</h4><div class="seg">${c.segments.map(([n,p])=>`<div class="segrow"><span>${esc(n)}</span><span class="num" style="text-align:right">~${p}%</span><div class="segbar"><i style="width:${p}%"></i></div></div>`).join("")}</div><p class="note">${esc(c.segNote)}.</p></div>
+  </div>
+  <div><h3>Snapshot</h3>${snapshotTiles(c,m)}<p class="note">Valuation uses ${c.tradeCcy==="GBP"&&c.repCcy==="USD"?"the share price converted to dollars at GBP/USD "+FX.toFixed(4)+" because the company reports in dollars":"the current price"}. Next event: <b>${esc(c.next)}</b>.</p></div>
+  <div class="grid2">
+    <div><h3>Latest results</h3>${interimTable(c)}</div>
+    <div><h3>Recent headlines</h3>${newsList(c.news.slice(0,4))}<p class="note"><button class="linkbtn" data-goto="news">All news</button></p></div>
+  </div>`;
+},
+pnl(c,m){
+  const i=c.is,R=c.repCcy;
+  const rows=c.bank?[
+    ["Revenue (net operating income)",i.rev,"bn"],["Profit before tax",i.pbt,"bn"],["Attributable profit",i.ni,"bn"],["Diluted EPS",i.eps,"ps"],["Dividend per share",i.dps,"ps"],["RoTE",i.rote,"pc"],["CET1 ratio",i.cet1,"pc"]
+  ]:[
+    ["Revenue",i.rev,"bn"],["EBITDA",i.ebitda,"bn"],["Operating profit (EBIT)",i.ebit,"bn"],["Interest expense",i.ie,"bn"],["Net income",i.ni,"bn"],["Diluted EPS",i.eps,"ps"],...(i.coreEps?[["Core EPS",i.coreEps,"ps"]]:[]),["Dividend per share",i.dps,"ps"],["Free cash flow",i.fcf,"bn"],
+    ["sec","Margins"],["EBITDA margin",i.ebitda.map((v,k)=>v/i.rev[k]),"r"],["Operating margin",i.ebit.map((v,k)=>v/i.rev[k]),"r"],["Net margin",i.ni.map((v,k)=>v/i.rev[k]),"r"]
+  ];
+  const keyOf={"Revenue":"rev","Revenue (net operating income)":"rev","EBITDA":"ebitda","Operating profit (EBIT)":"ebit","Interest expense":"ie","Net income":"ni","Attributable profit":"ni","Diluted EPS":"eps","Free cash flow":"fcf","Profit before tax":"pbt"};
+  return `<div><h3>Income statement</h3>
+    <div class="tw"><table><thead><tr><th>${esc(sym(R))}bn unless stated</th>${c.years.map(y=>`<th class="n">${y}</th>`).join("")}</tr></thead><tbody>
+    ${rows.map(r=>r[0]==="sec"?`<tr class="sec"><td class="lab">${r[1]}</td>${c.years.map(()=>"<td></td>").join("")}</tr>`:
+      `<tr${r[2]==="r"?' class="sub"':""}><td class="lab">${r[0]}</td>${r[1].map((v,k)=>`<td class="n">${cell(c,keyOf[r[0]],k,v,r[2])}</td>`).join("")}</tr>`).join("")}
+    </tbody></table></div><p class="note">${esc(c.fyNote)}</p></div>
+  <div class="charts">
+    <div class="chart"><h4>Revenue (${sym(R)}bn)</h4>${bars(i.rev,c.years,v=>fmtN(v,v>=100?0:1))}</div>
+    <div class="chart"><h4>Diluted EPS (${sym(R)})</h4>${bars(i.eps,c.years,v=>fmtN(v,2))}</div>
+    ${c.bank?`<div class="chart"><h4>Profit before tax (${sym(R)}bn)</h4>${bars(i.pbt,c.years,v=>fmtN(v,1))}</div>`:`<div class="chart"><h4>Free cash flow (${sym(R)}bn)</h4>${bars(i.fcf,c.years,v=>fmtN(v,v>=100?0:1))}</div>`}
+  </div>
+  <div><h3>Latest period</h3>${interimTable(c)}</div>`;
+},
+bs(c,m){
+  const b=c.bs,R=c.repCcy,L=b.ta.length-1;
+  const rows=c.bank?[["Total assets",b.ta,"ta"],["Total shareholders' equity",b.te,"te"],["Equity / assets",b.te.map((v,k)=>v/b.ta[k]),null,"r"]]:
+    [["Total assets",b.ta,"ta"],["Total equity",b.te,"te"],["Gross debt",b.debt,"debt"],["Cash & investments",b.cash,"cash"],["Net debt / (cash)",b.debt.map((v,k)=>v-b.cash[k]),"nd"],["sec","Ratios"],["Debt : equity",b.debt.map((v,k)=>b.te[k]>0?v/b.te[k]:null),null,"x"],["Net debt / EBITDA",b.debt.map((v,k)=>(v-b.cash[k])/c.is.ebitda[k]),null,"x"],["Equity / assets",b.te.map((v,k)=>v/b.ta[k]),null,"r"]];
+  return `<div class="grid2">
+    <div><h3>Latest balance sheet</h3><div class="tw"><table><thead><tr><th>As at ${esc(c.lbs.date)}</th><th class="n">Value</th></tr></thead><tbody>
+      ${c.lbs.rows.map(r=>`<tr><td>${esc(r[0])}</td><td class="n">${esc(r[1])}</td></tr>`).join("")}</tbody></table></div></div>
+    <div><h3>Leverage today</h3>${c.bank?`<div class="tiles">${tile("CET1",esc(c.lbs.rows[0][1]))}${tile("Leverage ratio",esc(c.lbs.rows[2][1]))}${tile("Price / book",mult(m.pb,2))}</div><p class="note">Debt-to-equity and EBITDA-based ratios aren't meaningful for a bank, where deposits and wholesale funding are the raw material of the business.</p>`:
+      `<div class="tiles">${tile("Debt : equity",m.de==null?"N/M":m.de.toFixed(2)+"x",m.deNote)}${tile("Net debt / EBITDA",isNum(m.ndEbitda)?m.ndEbitda.toFixed(2)+"x":"—",m.nd<0?"net cash":"")}${tile("Interest / EBITDA",pct(m.intEbitda),m.intYear)}${tile("Interest cover (EBIT)",isNum(m.intCover)?m.intCover.toFixed(1)+"x":"—",m.intYear)}</div>`}</div>
+  </div>
+  <div><h3>Balance sheet history (year-end)</h3><div class="tw"><table><thead><tr><th>${esc(sym(R))}bn</th>${c.years.map(y=>`<th class="n">${y}</th>`).join("")}</tr></thead><tbody>
+    ${rows.map(r=>r[0]==="sec"?`<tr class="sec"><td class="lab">${r[1]}</td>${c.years.map(()=>"<td></td>").join("")}</tr>`:`<tr${r[3]?' class="sub"':""}><td class="lab">${r[0]}</td>${r[1].map((v,k)=>`<td class="n">${r[3]==="r"?pct(v):r[3]==="x"?(isNum(v)?v.toFixed(2)+"x":"N/M"):cell(c,r[2],k,v,"bn")}</td>`).join("")}</tr>`).join("")}
+  </tbody></table></div><p class="note">${c.bank?"":"Debt excludes lease liabilities unless the company's own net debt includes them (Shell). "}${esc(c.fyNote)}</p></div>`;
+},
+metrics(c,m){
+  const R=c.repCcy;
+  const sec=t=>`<tr class="sec"><td class="lab">${t}</td><td></td><td></td><td></td></tr>`;
+  const row3=(l,a,b,d,f=pct,note="")=>`<tr><td class="lab">${l}</td><td class="n">${a==null?"N/M":f(a)}</td><td class="n">${b==null?"N/M":f(b)}</td><td class="n">${d==null?"N/M":f(d)}</td></tr>${note?`<tr class="sub"><td colspan="4" style="white-space:normal">${note}</td></tr>`:""}`;
+  const val=m.bank?`
+    <tr><td class="lab">Market capitalisation</td><td class="n" colspan="3">${c.tradeCcy==="GBP"?"£"+fmtN(m.mcapLocal,1)+"bn · ":""}$${fmtN(m.mcapUSD,1)}bn</td></tr>
+    <tr><td class="lab">Enterprise value</td><td class="n" colspan="3">N/M for a bank</td></tr>
+    <tr><td class="lab">P/E (last FY EPS)</td><td class="n" colspan="3">${mult(m.pe)}</td></tr>
+    <tr><td class="lab">CAPE (10-yr real EPS)</td><td class="n" colspan="3">${mult(m.cape)}</td></tr>
+    <tr><td class="lab">Price / book (≈)</td><td class="n" colspan="3">${mult(m.pb,2)}</td></tr>
+    <tr><td class="lab">Dividend yield</td><td class="n" colspan="3">${pct(m.dy,2)}</td></tr>
+    <tr><td class="lab">RoTE (reported)</td><td class="n" colspan="3">${pct(m.rote)}</td></tr>`:`
+    <tr><td class="lab">Market capitalisation</td><td class="n" colspan="3">${c.tradeCcy==="GBP"?"£"+fmtN(m.mcapLocal,1)+"bn · ":""}$${fmtN(m.mcapUSD,1)}bn</td></tr>
+    <tr><td class="lab">Enterprise value</td><td class="n" colspan="3">${bn(m.ev,R)}${R!=="USD"?" · $"+fmtN(m.evUSD,1)+"bn":""}</td></tr>
+    <tr><td class="lab">EV / EBITDA · EV / sales</td><td class="n" colspan="3">${mult(m.evEbitda)} · ${mult(m.evSales)}</td></tr>
+    <tr><td class="lab">P/E (last FY EPS)</td><td class="n" colspan="3">${mult(m.pe)}</td></tr>
+    <tr><td class="lab">CAPE (10-yr real EPS)</td><td class="n" colspan="3">${m.cape?mult(m.cape):esc(c.capeNote||"N/M")}</td></tr>
+    <tr><td class="lab">Free cash flow yield</td><td class="n" colspan="3">${pct(m.fcfY)}</td></tr>
+    <tr><td class="lab">Dividend yield</td><td class="n" colspan="3">${pct(m.dy,2)}</td></tr>`;
+  const lev=m.bank?"":`${sec("Margins and leverage (last FY)")}
+    <tr><td class="lab">EBITDA margin</td><td class="n" colspan="3">${pct(m.ebitdaM)}</td></tr>
+    <tr><td class="lab">Operating profit margin</td><td class="n" colspan="3">${pct(m.opM)}</td></tr>
+    <tr><td class="lab">Net margin</td><td class="n" colspan="3">${pct(m.netM)}</td></tr>
+    <tr><td class="lab">Debt : equity</td><td class="n" colspan="3">${m.de==null?esc(m.deNote||"N/M"):m.de.toFixed(2)+"x"}</td></tr>
+    <tr><td class="lab">Net debt / EBITDA</td><td class="n" colspan="3">${isNum(m.ndEbitda)?m.ndEbitda.toFixed(2)+"x":"—"}</td></tr>
+    <tr><td class="lab">Interest cost / EBITDA</td><td class="n" colspan="3">${pct(m.intEbitda)} <span class="muted">(${esc(m.intYear)})</span></td></tr>`;
+  return `<div><h3>Valuation</h3><div class="tw"><table><thead><tr><th>Measure</th><th class="n" colspan="3">Value</th></tr></thead><tbody>${val}${lev}</tbody></table></div>
+    <p class="note">Valuation uses ${pxFmt(c,m.price)}${c.tradeCcy==="GBP"&&R==="USD"?` (= $${fmtN(m.priceRep,2)} at GBP/USD ${FX.toFixed(4)})`:""} and ${c.years.at(-1)} results. Change the price or FX rate and these figures update.</p></div>
+  <div><h3>Growth and returns</h3><div class="tw"><table><thead><tr><th>Compound annual growth / average</th><th class="n">1 year</th><th class="n">3 years</th><th class="n">5 years</th></tr></thead><tbody>
+    ${sec("Growth")}
+    ${row3("Revenue growth",m.rg1,m.rg3,m.rg5)}
+    ${row3("EPS growth",m.eg1,m.eg3,m.eg5,pct,(m.eg5==null||m.eg3==null)?"N/M where the base year EPS was negative.":"")}
+    ${row3("Dividend growth",m.dg1,m.dg3,m.dg5,pct,c.id==="HSBA"?"2024 included a $0.21 special dividend from the Canada sale, so the 1-year rate is distorted.":(c.id==="RIO"?"2021 included a special dividend.":""))}
+    ${sec("Returns")}
+    ${row3("Return on assets",m.roa1,m.roa3,m.roa5)}
+    ${row3("Return on equity",m.roe1,m.roe3,m.roe5,pct,m.roeNote||"")}
+    ${m.bank?row3("Return on tangible equity (reported)",m.rote,null,null,pct,"Reported RoTE for "+c.years.at(-1)+"; H1 2026 annualised 18.2%."):row3("Return on invested capital",m.roic1,m.roic3,m.roic5)}
+  </tbody></table></div><p class="note">Growth is compound annual growth from ${c.years.at(-1)} back 1, 3 or 5 years. Returns are averages of each year's ratio over the period, using average balances.</p></div>`;
+},
+brokers(c,m){
+  const br=c.brokers;const tot=(br.buy||0)+(br.hold||0)+(br.sell||0);
+  const toLoc=v=>br.tgtCcy==="USD"&&c.tradeCcy==="GBP"?v/FX*100:v;
+  const fmtT=v=>c.tradeCcy==="GBP"?fmtN(v,0)+"p":"$"+fmtN(v,0);
+  const lo=Math.min(toLoc(br.low),m.price,isNum(br.avg)?toLoc(br.avg):Infinity),hi=Math.max(toLoc(br.high),m.price,isNum(br.avg)?toLoc(br.avg):-Infinity);
+  const span=hi-lo||1,pos=v=>((v-lo)/span*90+5).toFixed(2)+"%";
+  return `<div class="grid2">
+    <div><h3>Consensus</h3>
+      <p style="margin:0 0 10px">${ratingPill(br.consensus)} <span class="muted small">${br.n?br.n+" analysts · ":""}as of ${esc(br.asOf)} · <a href="${esc(br.u)}" target="_blank" rel="noopener">${esc(br.src)}</a></span></p>
+      ${tot?`<div class="ratingbar" role="img" aria-label="${br.buy} buy, ${br.hold} hold, ${br.sell} sell"><i class="b" style="width:${br.buy/tot*100}%"></i><i class="h" style="width:${br.hold/tot*100}%"></i><i class="s" style="width:${br.sell/tot*100}%"></i></div>
+      <div class="legend"><span><i style="background:var(--good)"></i>Buy ${br.buy}</span><span><i style="background:var(--warn)"></i>Hold ${br.hold}</span><span><i style="background:var(--bad)"></i>Sell ${br.sell}</span></div>`:`<p class="muted small">No ratings split available.</p>`}
+      <div class="tiles" style="margin-top:14px">${tile("Average target",isNum(br.avg)?fmtT(toLoc(br.avg)):"n/a",br.tgtCcy==="USD"&&c.tradeCcy==="GBP"?"$"+br.avg+" converted":"")}${tile("Upside to average",isNum(m.upside)?(m.upside>=0?"+":"")+pct(m.upside):"—")}${tile("Range",fmtT(toLoc(br.low))+" – "+fmtT(toLoc(br.high)))}</div>
+    </div>
+    <div><h3>Price against targets</h3>
+      <div class="tgt" role="img" aria-label="Current price against target range">
+        <div class="rail2"></div><div class="rng" style="left:${pos(toLoc(br.low))};width:calc(${pos(toLoc(br.high))} - ${pos(toLoc(br.low))})"></div>
+        <div class="mark px" style="left:${pos(m.price)}"></div>${isNum(br.avg)?`<div class="mark avg" style="left:${pos(toLoc(br.avg))}"></div>`:""}
+      </div>
+      <div class="legend"><span><i style="background:var(--ink)"></i>Price ${pxFmt(c,m.price)}</span>${isNum(br.avg)?`<span><i style="background:var(--accent)"></i>Avg target ${fmtT(toLoc(br.avg))}</span>`:""}<span><i style="background:var(--accent-soft);border:1px solid var(--accent)"></i>Target range</span></div>
+      ${br.note?`<p class="note">${esc(br.note)}</p>`:""}
+    </div>
+  </div>
+  <div><h3>Notable broker calls</h3><div class="tw"><table><thead><tr><th>Broker</th><th>Rating</th><th class="n">Target</th><th>Date</th></tr></thead><tbody>
+    ${br.calls.map(r=>`<tr><td>${esc(r[0])}</td><td>${r[1]==="—"?"—":ratingPill(r[1])}</td><td class="n">${esc(r[2])}</td><td>${esc(r[3])}</td></tr>`).join("")}
+  </tbody></table></div>
+  <p class="note">Earnings view: valuation multiples on the Key metrics tab use reported earnings. Consensus forward earnings estimates weren't available from open sources, so forward P/E isn't shown.</p></div>`;
+},
+news(c){
+  const ind=MARKET_NEWS;
+  return `<div class="grid2"><div><h3>${esc(c.name)} news</h3>${newsList(c.news)}</div><div><h3>Market &amp; industry backdrop</h3>${newsList(ind)}</div></div>
+  <p class="note">Headlines gathered on ${AS_OF}. Some come from secondary coverage; follow the link to check the original.</p>`;
+},
+reports(c){
+  return `<div><h3>Report &amp; accounts</h3><div class="reports">${c.reports.map(r=>`<a class="rep" href="${esc(r.u)}" target="_blank" rel="noopener"><b>${esc(r.t)}</b><span>${esc(r.d)}</span></a>`).join("")}</div>
+  <p class="note">Links open the company's own filing, regulatory announcement or investor-relations page in a new tab.</p></div>
+  <div><h3>Latest results summary</h3>${interimTable(c)}</div>`;
+}
+};
+
+function cell(c,key,k,v,kind){
+  const isEst=key&&c.est&&((c.est[key]||[]).includes(k));
+  let s;
+  if(v===null||v===undefined)s="n/d";
+  else if(kind==="r")s=pct(v);
+  else if(kind==="pc")s=fmtN(v,1)+"%";
+  else if(kind==="ps")s=(v<0?"−":"")+fmtN(Math.abs(v),Math.abs(v)<0.1&&v!==0?3:2);
+  else s=(v<0?"−":"")+fmtN(Math.abs(v),Math.abs(v)>=1000?0:Math.abs(v)>=100?1:2);
+  return isEst?`<span class="est" title="Estimate or derived value">≈</span>${s}`:s;
+}
+function interimTable(c){
+  const t=c.interim;
+  return `<div class="tw"><table><thead><tr><th>${esc(t.label)}</th><th class="n">Value</th><th>Change / note</th></tr></thead><tbody>
+  ${t.rows.map(r=>`<tr><td>${esc(r[0])}</td><td class="n" style="white-space:normal">${esc(r[1])}</td><td class="muted" style="white-space:normal">${esc(r[2])}</td></tr>`).join("")}
+  </tbody></table></div><p class="note"><a href="${esc(t.src)}" target="_blank" rel="noopener">Source release</a></p>`;
+}
+function newsList(items){
+  return `<ul class="news">${items.map(n=>`<li><span class="d">${esc(n.d)}</span><div><div class="t">${n.tag?`<span class="tag">${esc(n.tag)}</span>`:""}${esc(n.h)}</div><div class="s">${esc(n.s)} · <a href="${esc(n.u)}" target="_blank" rel="noopener">Source</a></div></div></li>`).join("")}</ul>`;
+}
+function bars(vals,labels,fmt){
+  const W=320,H=150,pl=8,pr=8,pt=18,pb=22;
+  const max=Math.max(0,...vals.filter(isNum)),min=Math.min(0,...vals.filter(isNum));
+  const range=max-min||1,iw=W-pl-pr,ih=H-pt-pb,y=v=>pt+(max-v)/range*ih,bw=iw/vals.length*0.62;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Bar chart">`;
+  s+=`<line class="gl" x1="${pl}" x2="${W-pr}" y1="${y(0)}" y2="${y(0)}"/>`;
+  vals.forEach((v,k)=>{if(!isNum(v))return;const cx=pl+iw/vals.length*(k+.5),y0=y(0),y1=y(v),last=k===vals.length-1;
+    s+=`<rect class="${v<0?"bn":"bp"}${last&&v>=0?" last":""}" x="${(cx-bw/2).toFixed(1)}" y="${Math.min(y0,y1).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(1,Math.abs(y1-y0)).toFixed(1)}" rx="2"/>`;
+    s+=`<text class="vl" x="${cx.toFixed(1)}" y="${(v<0?Math.max(y0,y1)+11:Math.min(y0,y1)-4).toFixed(1)}" text-anchor="middle">${fmt(v)}</text>`;
+    s+=`<text class="axis" x="${cx.toFixed(1)}" y="${H-6}" text-anchor="middle">${labels[k]}</text>`;});
+  return s+"</svg>";
+}
+
+/* ---------- Compare view ---------- */
+const COLS=[
+  ["name","Company",(c,m)=>`<button data-id="${c.id}">${esc(c.name)}</button> <span class="mk ${c.mkt.toLowerCase()}">${c.mkt}</span>`,(c,m)=>c.name],
+  ["price","Price",(c,m)=>pxFmt(c,m.price),(c,m)=>null],
+  ["mcapUSD","Mkt cap $bn",(c,m)=>fmtN(m.mcapUSD,0)],
+  ["evUSD","EV $bn",(c,m)=>m.bank?"N/M":fmtN(m.evUSD,0)],
+  ["pe","P/E",(c,m)=>mult(m.pe)],
+  ["cape","CAPE",(c,m)=>m.cape?mult(m.cape):"N/M"],
+  ["evEbitda","EV/EBITDA",(c,m)=>m.bank?"N/M":mult(m.evEbitda)],
+  ["dy","Div yield",(c,m)=>pct(m.dy,2)],
+  ["fcfY","FCF yield",(c,m)=>m.bank?"N/M":pct(m.fcfY)],
+  ["ebitdaM","EBITDA mgn",(c,m)=>m.bank?"N/M":pct(m.ebitdaM)],
+  ["opM","Op. mgn",(c,m)=>m.bank?"N/M":pct(m.opM)],
+  ["de","Debt:equity",(c,m)=>m.bank?"N/M":(m.de==null?"N/M":m.de.toFixed(2)+"x")],
+  ["intEbitda","Int./EBITDA",(c,m)=>m.bank?"N/M":pct(m.intEbitda)],
+  ["rg3","Rev g 3y",(c,m)=>m.rg3==null?"N/M":pct(m.rg3)],
+  ["eg3","EPS g 3y",(c,m)=>m.eg3==null?"N/M":pct(m.eg3)],
+  ["roe1","ROE 1y",(c,m)=>m.roe1==null?"N/M":pct(m.roe1)],
+  ["roa1","ROA 1y",(c,m)=>m.roa1==null?"N/M":pct(m.roa1)],
+  ["upside","Upside",(c,m)=>isNum(m.upside)?`<span class="${m.upside>=0?"up":"down"}">${m.upside>=0?"+":""}${pct(m.upside)}</span>`:"—"],
+  ["cons","Consensus",(c,m)=>ratingPill(c.brokers.consensus),(c,m)=>c.brokers.consensus]
+];
+function renderCompare(){
+  const rows=COMPANIES.map(c=>({c,m:metrics(c)}));
+  const col=COLS.find(x=>x[0]===sort.key);
+  rows.sort((a,b)=>{
+    const va=col[3]?col[3](a.c,a.m):a.m[sort.key],vb=col[3]?col[3](b.c,b.m):b.m[sort.key];
+    if(typeof va==="string"||typeof vb==="string")return String(va).localeCompare(String(vb))*sort.dir;
+    const na=isNum(va)?va:-Infinity,nb=isNum(vb)?vb:-Infinity;return (na-nb)*sort.dir;});
+  $("#main").innerHTML=`<section class="panel">
+    <div class="cmphead"><div><h2>Side-by-side</h2><p class="muted small" style="margin:4px 0 0">All 10 companies on the same measures. Click a column to sort and a name to open the company.</p></div></div>
+    <div class="tw" style="border:0;border-radius:0"><table class="cmp"><thead><tr>${COLS.map(([k,l])=>`<th class="${k==="name"||k==="cons"?"":"n"}" data-k="${k}" aria-sort="${sort.key===k?(sort.dir>0?"ascending":"descending"):"none"}">${l}</th>`).join("")}</tr></thead>
+    <tbody>${rows.map(({c,m})=>`<tr>${COLS.map(([k,,f],j)=>`<td class="${j===0?"lab":k==="cons"?"":"n"}">${f(c,m)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>
+    <p class="note" style="padding:0 20px">Last full fiscal year for P&amp;L measures; latest balance sheet for EV and debt. Growth is 3-year compound annual growth. N/M = not meaningful (bank, negative equity or loss-making base year).</p>
+    <div class="backdrop"><div><h3>Market backdrop</h3>${newsList(MARKET_NEWS)}</div>
+      <div><h3>Coming up</h3><ul class="news">${COMPANIES.map(c=>`<li><span class="d">${esc(c.ticker)}</span><div><div class="t">${esc(c.next)}</div></div></li>`).join("")}</ul></div></div>
+  </section>`;
+  document.querySelectorAll(".cmp th").forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(k==="price")return;sort=sort.key===k?{key:k,dir:-sort.dir}:{key:k,dir:k==="name"?1:-1};renderCompare()});
+  document.querySelectorAll(".cmp td.lab button").forEach(b=>b.onclick=()=>openCompany(b.dataset.id,"overview"));
+}
+
+/* ---------- Boot ---------- */
+function render(){
+  renderRail();
+  if(view.mode==="compare")renderCompare();else renderCompany();
+  document.querySelectorAll("[data-goto]").forEach(b=>b.onclick=()=>{view.tab=b.dataset.goto;render()});
+}
+$("#asof").textContent="Data as of "+AS_OF;
+const fxIn=$("#fx");fxIn.value=FX;
+fxIn.onchange=()=>{const v=parseFloat(fxIn.value);if(isNum(v)&&v>0.5&&v<3){FX=v;store.set("eqm-fx",FX);render()}else fxIn.value=FX};
+$("#btnCompare").onclick=()=>{view.mode=view.mode==="compare"?"company":"compare";try{history.replaceState(null,"","#"+(view.mode==="compare"?"compare":view.id))}catch(e){}render()};
+(function(){const h=(location.hash||"").slice(1);if(h==="compare")view.mode="compare";else if(COMPANIES.some(c=>c.id===h))view.id=h;})();
+render();
+</script>
